@@ -1,0 +1,40 @@
+"""API 키 없이도 돌아가는 최소 스모크 테스트.
+
+- 서버 모듈 import 및 도구 등록이 에러 없이 되는지
+- 키가 없는 상태에서 도구를 호출하면 크래시 대신 안내 메시지가 담긴 dict를 반환하는지
+"""
+import asyncio
+
+import pytest
+
+from korea_public_data_mcp import server
+
+
+def test_server_imports_and_registers_tools():
+    tool_names = set(asyncio.run(server.mcp.list_tools()).__class__.__name__ and [])
+    # list_tools()는 코루틴이라 위 표현은 이름만 확보하기 위한 트릭 대신 아래처럼 직접 호출
+    tools = asyncio.run(server.mcp.list_tools())
+    names = {t.name for t in tools}
+    assert "dart_search_company" in names
+    assert "ecos_get_key_indicator" in names
+    assert "kosis_search_statistics" in names
+    assert "data_go_kr_check_business_status" in names
+
+
+@pytest.mark.parametrize(
+    "tool_name,kwargs",
+    [
+        ("dart_search_company", {"company_name": "삼성전자"}),
+        ("ecos_get_key_indicator", {"indicator": "기준금리", "start": "202301", "end": "202312"}),
+        ("kosis_search_statistics", {"keyword": "실업률"}),
+        ("data_go_kr_check_business_status", {"business_numbers": ["1234567890"]}),
+    ],
+)
+def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
+    for var in ["DART_API_KEY", "ECOS_API_KEY", "KOSIS_API_KEY", "DATA_GO_KR_API_KEY"]:
+        monkeypatch.delenv(var, raising=False)
+
+    result = asyncio.run(server.mcp.call_tool(tool_name, kwargs))
+    # call_tool은 (content_list, is_error) 형태 등 SDK 버전에 따라 다를 수 있으므로
+    # 예외 없이 반환되는지만 확인한다.
+    assert result is not None

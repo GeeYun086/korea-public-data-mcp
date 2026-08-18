@@ -1,0 +1,40 @@
+"""Korea Public Data MCP 서버 엔트리포인트.
+
+Claude Desktop/Code 등 MCP 클라이언트가 stdio로 이 프로세스를 띄우고 통신한다.
+API 키가 하나도 없어도 서버는 정상적으로 시작되고 도구 목록도 노출된다 —
+실제 키가 필요한 시점은 각 도구가 '호출'될 때 뿐이다 (config.get_api_key 참고).
+"""
+from __future__ import annotations
+
+from mcp.server.mcpserver import MCPServer
+
+from korea_public_data_mcp.tools import (
+    dart_tools,
+    data_go_kr_tools,
+    ecos_tools,
+    kosis_tools,
+)
+
+mcp = MCPServer(
+    "korea-public-data",
+    instructions=(
+        "대한민국 공공데이터(금융감독원 OpenDART 재무제표/공시, 한국은행 ECOS 거시경제지표, "
+        "통계청 KOSIS 국가통계, 공공데이터포털 data.go.kr)를 조회하는 도구 모음입니다. "
+        "수치나 통계를 답할 때는 반드시 이 도구들로 조회한 실제 값을 근거로 답하고, "
+        "임의로 추정하지 마세요. 회사 재무 정보는 dart_search_company로 corp_code를 먼저 "
+        "확인한 뒤 dart_get_financial_statements를 호출하세요."
+    ),
+)
+
+dart_tools.register(mcp)
+ecos_tools.register(mcp)
+kosis_tools.register(mcp)
+data_go_kr_tools.register(mcp)
+
+
+def main() -> None:
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
