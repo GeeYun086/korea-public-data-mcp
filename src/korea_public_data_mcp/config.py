@@ -10,7 +10,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# MCP 클라이언트(Claude Desktop 등)가 이 프로세스를 실행할 때 작업 디렉터리(cwd)가
+# 프로젝트 폴더가 아닐 수 있어, load_dotenv()의 기본 탐색(cwd 기준)만 믿으면 .env를
+# 못 찾는 경우가 생긴다. 그래서 이 파일 위치를 기준으로 프로젝트 루트의 .env를 명시적으로 지정한다.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+load_dotenv(_PROJECT_ROOT / ".env")
 
 CACHE_DIR = Path(os.environ.get("MCP_CACHE_DIR", ".cache"))
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -54,11 +58,51 @@ API_KEYS = {
         issue_url="https://www.data.go.kr (원하는 서비스 상세페이지에서 [활용신청])",
         display_name="공공데이터포털",
     ),
+    # 한국수출입은행은 환율/대출금리/국제금리가 각각 별도 "API 상품" 페이지로 분리돼 있어
+    # 서비스별로 별도 인증키가 발급된다 (공용 키 하나가 아님).
+    "koreaexim_exchange": ApiKeySpec(
+        env_var="KOREAEXIM_EXCHANGE_API_KEY",
+        issue_url="https://www.koreaexim.go.kr/ir/HPHKIR020M01?apino=2 (현재환율 API, 즉시 발급)",
+        display_name="한국수출입은행(환율)",
+    ),
+    "koreaexim_loan": ApiKeySpec(
+        env_var="KOREAEXIM_LOAN_API_KEY",
+        issue_url="https://www.koreaexim.go.kr/ir/HPHKIR020M01?apino=3 (대출금리 API, 즉시 발급)",
+        display_name="한국수출입은행(대출금리)",
+    ),
+    "koreaexim_international": ApiKeySpec(
+        env_var="KOREAEXIM_INTERNATIONAL_API_KEY",
+        issue_url="https://www.koreaexim.go.kr/ir/HPHKIR020M01?apino=4 (국제금리 API, 즉시 발급)",
+        display_name="한국수출입은행(국제금리)",
+    ),
+    # 아래 3곳은 data.go.kr 경유가 아니라 기관 사이트에서 직접 발급받는 별도 키다.
+    # NTIS는 '소속기관 등록'과 '호출 서버 공인 IP'가 신청서 선행 조건이라 즉시 발급이 안 되고
+    # 승인까지 수일 걸린다 (.env.example 의 발급 절차 주석 참고).
+    "ntis": ApiKeySpec(
+        env_var="NTIS_API_KEY",
+        issue_url=(
+            "https://www.ntis.go.kr/rndopen/api/mng/apiMain.do "
+            "(로그인 → 소속기관 등록 → API별 활용신청 → 승인 대기)"
+        ),
+        display_name="NTIS 국가과학기술지식정보서비스",
+    ),
+    # 기업마당은 인증키 파라미터명이 serviceKey 가 아니라 crtfcKey 이므로 호출부에서 주의.
+    "bizinfo": ApiKeySpec(
+        env_var="BIZINFO_API_KEY",
+        issue_url="https://www.bizinfo.go.kr/apiDetail.do?id=bizinfoApi (신청 폼 작성 → 이메일로 인증키 수신)",
+        display_name="기업마당 Bizinfo",
+    ),
+    # AI Hub 키는 사업공고용이 아니라 aihubshell 데이터셋 다운로드/메타데이터 조회용이다.
+    "aihub": ApiKeySpec(
+        env_var="AIHUB_API_KEY",
+        issue_url="https://www.aihub.or.kr/devsport/apishell/list.do (회원가입 → [API key 발급] → 이메일 수신)",
+        display_name="AI Hub",
+    ),
 }
 
 
 def get_api_key(name: str) -> str:
-    """name(dart/ecos/kosis/data_go_kr)에 해당하는 키를 반환. 없으면 발급 안내와 함께 에러."""
+    """name(API_KEYS 의 키)에 해당하는 값을 반환. 없으면 발급 안내와 함께 에러."""
     spec = API_KEYS[name]
     value = os.environ.get(spec.env_var, "").strip()
     if not value:

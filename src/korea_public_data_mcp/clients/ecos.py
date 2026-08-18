@@ -10,9 +10,17 @@
 from __future__ import annotations
 
 from korea_public_data_mcp.config import get_api_key
+from korea_public_data_mcp.core.cache import (
+    disk_file_is_fresh,
+    read_disk_json,
+    write_disk_json,
+)
 from korea_public_data_mcp.core.http_client import get_json
 
 _BASE = "https://ecos.bok.or.kr/api"
+_TABLE_LIST_CACHE_NAME = "ecos_statistic_tables.json"
+_TABLE_LIST_MAX_AGE = 7 * 24 * 3600  # 통계표 목록은 자주 안 바뀌므로 1주일 캐시
+_TABLE_LIST_MAX_ROWS = 2000  # 현재 834건. 여유를 두고 한 번에 받는다.
 
 # stat_code, cycle(D/M/Q/A), item_code1 조합. ECOS 통계코드 체계 기준 대표값.
 KEY_INDICATORS = {
@@ -32,16 +40,42 @@ async def search_statistic_word(keyword: str) -> list[dict]:
     return [{"word": r.get("WORD"), "content": r.get("CONTENT")} for r in rows]
 
 
-async def search_statistic_tables(keyword: str) -> list[dict]:
+async def _load_statistic_tables() -> list[dict]:
+    """ECOS 통계표 전체 목록을 받아 로컬에 캐싱한다.
+
+    StatisticTableList의 마지막 경로 인자는 '키워드'가 아니라 '통계표코드'다.
+    거기에 검색어를 넣으면 INFO-200(해당 데이터 없음)만 돌아오므로,
+    전체 목록을 한 번 받아두고 키워드 필터링은 아래 search_statistic_tables에서 직접 한다.
+    """
+    if disk_file_is_fresh(_TABLE_LIST_CACHE_NAME, _TABLE_LIST_MAX_AGE):
+        cached = read_disk_json(_TABLE_LIST_CACHE_NAME)
+        if cached:
+            return cached
     data = await get_json(
         "ecos",
-        f"{_BASE}/StatisticTableList/{get_api_key('ecos')}/json/kr/1/50/{keyword}",
+        f"{_BASE}/StatisticTableList/{get_api_key('ecos')}/json/kr/1/{_TABLE_LIST_MAX_ROWS}",
     )
     rows = data.get("StatisticTableList", {}).get("row", [])
-    return [
-        {"stat_code": r.get("STAT_CODE"), "stat_name": r.get("STAT_NAME"), "cycle": r.get("CYCLE")}
+    tables = [
+        {
+            "stat_code": r.get("STAT_CODE"),
+            "stat_name": r.get("STAT_NAME"),
+            "cycle": r.get("CYCLE"),
+            "srch_yn": r.get("SRCH_YN"),  # 'Y'인 것만 실제 데이터 조회가 가능하다
+        }
         for r in rows
     ]
+    write_disk_json(_TABLE_LIST_CACHE_NAME, tables)
+    return tables
+
+
+async def search_statistic_tables(keyword: str) -> list[dict]:
+    """통계표명 부분일치로 stat_code를 찾는다. 공백으로 구분한 여러 단어는 AND 조건."""
+    tables = await _load_statistic_tables()
+    terms = [t for t in keyword.strip().lower().split() if t]
+    if not terms:
+        return tables
+    return [t for t in tables if all(term in (t["stat_name"] or "").lower() for term in terms)]
 
 
 async def get_statistic_search(
