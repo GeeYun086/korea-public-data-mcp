@@ -41,6 +41,7 @@ DART 전자공시 데이터를 붙여 재무제표 질문에 답하는 MCP들과
 | 한국은행 ECOS | `ecos_get_key_indicator`, `ecos_search_statistics`, `ecos_get_statistic_data` | 기준금리/환율/GDP/물가는 이름으로 바로 조회 가능 |
 | 통계청 KOSIS | `kosis_search_statistics`, `kosis_get_statistics_data` | 키워드 검색 후 표 단위로 기간 범위 일괄 조회 |
 | 공공데이터포털 (data.go.kr) | `data_go_kr_check_business_status`, `data_go_kr_generic_get` | 사업자등록 상태는 배치(최대 100건) 지원, 그 외 서비스는 범용 GET 도구로 임시 대응 |
+| 한국수출입은행 | `koreaexim_get_exchange_rates`, `koreaexim_get_loan_rates`, `koreaexim_get_international_rates` | data.go.kr이 아니라 koreaexim.go.kr 자체 사이트에서 발급. 환율/대출금리/국제금리가 별도 API 상품이라 **서비스별로 각각 신청해서 authkey 3개**를 받아야 함. 영업일 11시 이전/비영업일 조회 시 데이터 비어있을 수 있음 |
 
 ## API 키 발급 안내
 
@@ -53,6 +54,7 @@ DART 전자공시 데이터를 붙여 재무제표 질문에 답하는 MCP들과
 | ECOS | https://ecos.bok.or.kr/api/#/ | Open API 인증키 신청, 즉시~1일 이내 |
 | KOSIS | https://kosis.kr/openapi/index/index.jsp | "OpenAPI 활용신청", 승인까지 시간이 걸릴 수 있음 |
 | 공공데이터포털 | https://www.data.go.kr → 원하는 서비스 상세페이지 → [활용신청] | 서비스별로 별도 신청 필요. 우선 "국세청_사업자등록정보 진위확인 및 상태조회"부터 신청 추천 |
+| 한국수출입은행 | https://www.koreaexim.go.kr/ir/HPHKIR019M01 → Open API 명세 → 인증키 발급신청 | data.go.kr 경유가 아니라 koreaexim.go.kr 자체 발급. 즉시~당일 |
 
 키를 받으면 `.env.example`을 `.env`로 복사해서 채워 넣으세요.
 

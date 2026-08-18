@@ -19,6 +19,7 @@ def test_server_imports_and_registers_tools():
     assert "ecos_get_key_indicator" in names
     assert "kosis_search_statistics" in names
     assert "data_go_kr_check_business_status" in names
+    assert "koreaexim_get_exchange_rates" in names
 
 
 @pytest.mark.parametrize(
@@ -28,10 +29,19 @@ def test_server_imports_and_registers_tools():
         ("ecos_get_key_indicator", {"indicator": "기준금리", "start": "202301", "end": "202312"}),
         ("kosis_search_statistics", {"keyword": "실업률"}),
         ("data_go_kr_check_business_status", {"business_numbers": ["1234567890"]}),
+        ("koreaexim_get_exchange_rates", {}),
     ],
 )
 def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
-    for var in ["DART_API_KEY", "ECOS_API_KEY", "KOSIS_API_KEY", "DATA_GO_KR_API_KEY"]:
+    for var in [
+        "DART_API_KEY",
+        "ECOS_API_KEY",
+        "KOSIS_API_KEY",
+        "DATA_GO_KR_API_KEY",
+        "KOREAEXIM_EXCHANGE_API_KEY",
+        "KOREAEXIM_LOAN_API_KEY",
+        "KOREAEXIM_INTERNATIONAL_API_KEY",
+    ]:
         monkeypatch.delenv(var, raising=False)
 
     result = asyncio.run(server.mcp.call_tool(tool_name, kwargs))
