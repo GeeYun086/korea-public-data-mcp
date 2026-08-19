@@ -72,6 +72,16 @@ SOURCES: dict[str, Source] = {
         stage="발주계획",
         note="입찰공고보다 수개월 앞선 신호다. 아직 공고가 안 뜬 사업을 미리 파악할 때 쓴다.",
     ),
+    "g2b_request": Source(
+        id="g2b_request",
+        name="나라장터 조달요청",
+        domain="procurement",
+        api_key="data_go_kr",
+        description="수요기관이 조달청에 구매를 요청한 건. 요청명·수요기관·요청금액 제공",
+        aliases=("조달요청", "구매요청", "나라장터", "조달청", "조달", "g2b"),
+        stage="조달요청",
+        note="발주계획과 입찰공고 사이 단계다. 조달청을 거치는 건만 올라온다.",
+    ),
     "g2b_prestandard": Source(
         id="g2b_prestandard",
         name="나라장터 사전규격",
@@ -154,3 +164,69 @@ def catalog(domain: str | None = None) -> list[dict]:
         for s in SOURCES.values()
         if domain is None or s.domain == domain
     ]
+
+
+# 전용 어댑터를 두지 않은 서비스들.
+#
+# 공고가 아니라 통계·단가·코드사전 성격이라 gov_search 결과에 섞으면 오히려 방해가 된다.
+# 다만 활용신청은 완료돼 있고 엔드포인트도 확인했으므로, data_go_kr_generic_get 으로
+# 바로 호출할 수 있다. 모델이 주소를 추측할 수는 없으니 여기에 적어두고 목록으로 노출한다.
+# (엔드포인트는 data.go.kr 상세페이지에 포함된 Swagger 명세에서 확인 — 2026-08 기준)
+EXTRA_ENDPOINTS = [
+    {
+        "id": "15129412", "name": "공공조달통계정보",
+        "base_url": "https://apis.data.go.kr/1230000/at/PubPrcrmntStatInfoService",
+        "operations": ["getTotlPubPrcrmntSttus", "getDminsttAccotBsnsObjAccotArslt",
+                       "getPrcrmntEntrprsAccotCntrctMthdAccotArslt"],
+        "note": "24개 전자조달시스템의 계약 집계. 기관별·기업별·계약방법별 실적. 개별 공고가 아니라 시장 규모 분석용",
+    },
+    {
+        "id": "15129415", "name": "나라장터 가격정보현황",
+        "base_url": "https://apis.data.go.kr/1230000/ao/PriceInfoService",
+        "operations": ["getPriceInfoListFcltyCmmnMtrilEngrk", "getPriceInfoListMrktCnstrctPcEngrk"],
+        "note": "시설공통자재·시장시공 단가. 입찰 가격 산정 참고용",
+    },
+    {
+        "id": "15129459", "name": "나라장터 계약과정통합공개",
+        "base_url": "https://apis.data.go.kr/1230000/ao/CntrctProcssIntgOpenService",
+        "operations": ["getCntrctProcssIntgOpenThng", "getCntrctProcssIntgOpenServc",
+                       "getCntrctProcssIntgOpenCnstwk"],
+        "note": "계약 체결 과정 통합 공개. 업무구분별로 오퍼레이션이 나뉜다",
+    },
+    {
+        "id": "15129417", "name": "조달청 물품목록정보",
+        "base_url": "https://apis.data.go.kr/1230000/ao/ThngListInfoService02",
+        "operations": ["getThngGuidanceMapInfo02", "getThngPrdnmLocplcAccotListInfoInfoPrdlstSearch02"],
+        "note": "물품 분류번호 사전. 다른 조달 API의 품목 코드를 해석할 때 쓴다",
+    },
+    {
+        "id": "15129470", "name": "조달청 물품관리정보",
+        "base_url": "https://apis.data.go.kr/1230000/ao/PrdctMngInfoService",
+        "operations": ["getPrdctClsfcNoUslfsvc"],
+        "note": "물품 내용연수 고시 정보",
+    },
+    {
+        "id": "15129466", "name": "나라장터 사용자정보",
+        "base_url": "https://apis.data.go.kr/1230000/ao/UsrInfoService02",
+        "operations": ["getPrcrmntCorpBasicInfo02", "getDminsttInfo02", "getUnptRsttCorpInfo02"],
+        "note": "나라장터 등록 조달업체·수요기관 정보. inqryDiv 필수",
+    },
+    {
+        "id": "15129467", "name": "나라장터 업종·근거법규",
+        "base_url": "https://apis.data.go.kr/1230000/ao/IndstrytyBaseLawrgltInfoService",
+        "operations": ["getIndstrytyBaseLawrgltInfoList"],
+        "note": "업종 코드와 근거 법령 사전. 입찰 참가자격(면허) 해석용",
+    },
+    {
+        "id": "15129471", "name": "나라장터쇼핑몰 품목정보",
+        "base_url": "https://apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService",
+        "operations": ["getMASCntrctPrdctInfoList"],
+        "note": "종합쇼핑몰 물품 카탈로그. 공고가 아니라 이미 계약된 상품 목록",
+    },
+    {
+        "id": "15125365", "name": "창업진흥원 창업공간플랫폼",
+        "base_url": "https://apis.data.go.kr/B552735/kisedSlpService",
+        "operations": ["getCenterList", "getCenterSpaceList"],
+        "note": "창업 보육센터·공간 정보. 공고가 아니라 시설 목록",
+    },
+]

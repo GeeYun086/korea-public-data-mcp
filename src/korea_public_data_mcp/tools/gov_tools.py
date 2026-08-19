@@ -117,5 +117,12 @@ def register(mcp: MCPServer) -> None:
     @mcp.tool()
     async def gov_list_sources(domain: str = "") -> dict:
         """검색 가능한 정부사업·조달 기관 목록과 각 기관이 무엇을 담고 있는지 반환한다.
-        어느 기관을 조회해야 할지 판단이 서지 않을 때 gov_search 보다 먼저 호출한다."""
-        return {"sources": registry.catalog(domain or None)}
+        어느 기관을 조회해야 할지 판단이 서지 않을 때 gov_search 보다 먼저 호출한다.
+
+        gov_search 로 검색되는 소스 외에, 통계·단가·코드사전처럼 공고가 아니라
+        gov_search 에 넣지 않은 서비스도 함께 반환한다. 그쪽은 base_url/operations 를
+        data_go_kr_generic_get 에 그대로 넣어 호출하면 된다."""
+        return {
+            "sources": registry.catalog(domain or None),
+            "generic_get으로_호출_가능한_서비스": registry.EXTRA_ENDPOINTS,
+        }

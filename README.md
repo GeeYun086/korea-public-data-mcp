@@ -19,7 +19,7 @@
 | 분야 | 상태 | 소스 |
 | --- | --- | --- |
 | **금융** | ✅ 완료 | 4곳 |
-| **정부사업 · 조달** | ✅ 완료 | 9곳 |
+| **정부사업 · 조달** | ✅ 완료 | 10곳 |
 | 학술 / 연구 / 교육 | ⬜ 예정 | — |
 | 지식재산권 / 특허 | ⬜ 예정 | — |
 | 법률 / 행정 / 안전 | ⬜ 예정 | — |
@@ -42,35 +42,42 @@
 | 보조금24 (행정안전부) | 정부·지자체 공공서비스(혜택) 목록 | [data.go.kr 15113968](https://www.data.go.kr/data/15113968/openapi.do) |
 | 과기정통부 사업공고 | R&D·국제협력·인프라 사업 공모 공고 | [data.go.kr 15074634](https://www.data.go.kr/data/15074634/openapi.do) |
 
-### 정부사업 — 조달 5단계 (조달청 나라장터)
+### 정부사업 — 조달 6단계 (조달청 나라장터)
 
 한 사업이 아래 순서로 흘러갑니다. **앞 단계일수록 먼저 알 수 있습니다.**
 
 ```
-발주계획  →  사전규격  →  입찰공고  →  낙찰  →  계약
-수개월 전    2주~1달 전     지금       결과     완료
+발주계획  →  조달요청  →  사전규격  →  입찰공고  →  낙찰  →  계약
+수개월 전     구매요청    2주~1달 전     지금       결과     완료
 ```
 
 | 단계 | 제공 데이터 | 출처 |
 | --- | --- | --- |
 | 발주계획 | 공공기관이 미리 공개하는 발주 예정 목록. 사업명·발주기관·발주월·발주금액 | [data.go.kr 15129462](https://www.data.go.kr/data/15129462/openapi.do) |
+| 조달요청 | 수요기관이 조달청에 구매를 요청한 건. 요청명·수요기관·예산액 | [data.go.kr 15129468](https://www.data.go.kr/data/15129468/openapi.do) |
 | 사전규격 | 입찰 전 의견수렴 단계의 규격안. 사업명·수요기관·배정예산·의견마감 | [data.go.kr 15129437](https://www.data.go.kr/data/15129437/openapi.do) |
 | 입찰공고 | 공고명·공고기관·수요기관·배정예산·추정가격·입찰마감 | [data.go.kr 15058815](https://www.data.go.kr/data/15058815/openapi.do) |
 | 낙찰 | 낙찰업체·낙찰금액·낙찰률·참여업체수 | [data.go.kr 15129397](https://www.data.go.kr/data/15129397/openapi.do) |
 | 계약 | 계약명·수요기관·계약금액·계약방법 | [data.go.kr 15129427](https://www.data.go.kr/data/15129427/openapi.do) |
 
-### 활용신청을 마친 그 밖의 조달청 서비스
+### 그 밖에 호출 가능한 서비스
 
-아래는 인증키 권한이 확보되어 있으며, `data_go_kr_generic_get` 으로 바로 호출할 수 있습니다.
+아래는 공고가 아니라 통계·단가·코드사전 성격이라 `gov_search` 결과에 넣지 않았습니다.
+인증키 권한은 확보되어 있고 엔드포인트도 확인되어, `data_go_kr_generic_get` 으로 바로 호출됩니다.
+`gov_list_sources` 를 호출하면 주소와 오퍼레이션명이 함께 나옵니다.
 
-| ID | 서비스 | ID | 서비스 |
-| --- | --- | --- | --- |
-| [15129394](https://www.data.go.kr/data/15129394/openapi.do) | 나라장터 입찰공고정보 | [15129417](https://www.data.go.kr/data/15129417/openapi.do) | 물품목록정보 |
-| [15129471](https://www.data.go.kr/data/15129471/openapi.do) | 종합쇼핑몰 품목정보 | [15129468](https://www.data.go.kr/data/15129468/openapi.do) | 조달요청 |
-| [15129412](https://www.data.go.kr/data/15129412/openapi.do) | 공공조달통계정보 | [15129415](https://www.data.go.kr/data/15129415/openapi.do) | 가격정보현황 |
-| [15129459](https://www.data.go.kr/data/15129459/openapi.do) | 계약과정통합공개 | [15129470](https://www.data.go.kr/data/15129470/openapi.do) | 물품관리정보 |
-| [15125365](https://www.data.go.kr/data/15125365/openapi.do) | 창업공간플랫폼 | [15129466](https://www.data.go.kr/data/15129466/openapi.do) | 사용자정보 |
-| [15088749](https://www.data.go.kr/data/15088749/openapi.do) | 한국연구재단 NRIC | [15129467](https://www.data.go.kr/data/15129467/openapi.do) | 업종·근거법규 |
+| 서비스 | 쓰임 | 출처 |
+| --- | --- | --- |
+| 공공조달통계정보 | 기관별·기업별·계약방법별 조달 실적 집계 | [15129412](https://www.data.go.kr/data/15129412/openapi.do) |
+| 나라장터 가격정보현황 | 시설공통자재·시장시공 단가. 입찰 가격 산정 참고 | [15129415](https://www.data.go.kr/data/15129415/openapi.do) |
+| 나라장터 계약과정통합공개 | 계약 체결 과정 통합 공개 | [15129459](https://www.data.go.kr/data/15129459/openapi.do) |
+| 나라장터 사용자정보 | 등록 조달업체·수요기관 정보 | [15129466](https://www.data.go.kr/data/15129466/openapi.do) |
+| 나라장터 업종·근거법규 | 업종 코드와 근거 법령. 입찰 참가자격 해석용 | [15129467](https://www.data.go.kr/data/15129467/openapi.do) |
+| 나라장터쇼핑몰 품목정보 | 종합쇼핑몰 물품 카탈로그 | [15129471](https://www.data.go.kr/data/15129471/openapi.do) |
+| 조달청 물품목록정보 | 물품 분류번호 사전 | [15129417](https://www.data.go.kr/data/15129417/openapi.do) |
+| 조달청 물품관리정보 | 물품 내용연수 고시 | [15129470](https://www.data.go.kr/data/15129470/openapi.do) |
+| 창업진흥원 창업공간플랫폼 | 창업 보육센터·공간 정보 | [15125365](https://www.data.go.kr/data/15125365/openapi.do) |
+| 한국연구재단 NRIC | 연구인력 채용정보 | [15088749](https://www.data.go.kr/data/15088749/openapi.do) |
 
 ---
 
@@ -146,8 +153,8 @@ docker run -i --rm --env-file .env korea-public-data-mcp
 
 | 도구 | 설명 |
 | --- | --- |
-| `gov_search` | 9개 소스를 한 번에 검색합니다. 기관을 지정하면 그쪽만 조회하고, 지정하지 않으면 전체를 훑되 기관별 상한(기본 10건)을 적용합니다 |
-| `gov_list_sources` | 조회 가능한 소스 목록과 각 소스가 무엇을 담고 있는지 반환합니다 |
+| `gov_search` | 10개 소스를 한 번에 검색합니다. 기관을 지정하면 그쪽만 조회하고, 지정하지 않으면 전체를 훑되 기관별 상한(기본 10건)을 적용합니다 |
+| `gov_list_sources` | 조회 가능한 소스 목록과 각 소스의 특성을 반환합니다. `generic_get` 으로 호출할 수 있는 서비스의 주소·오퍼레이션명도 함께 나옵니다 |
 
 `gov_search` 인자
 

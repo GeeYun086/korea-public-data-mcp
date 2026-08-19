@@ -293,6 +293,37 @@ async def fetch_g2b_order_plan(year: str = "") -> list[dict]:
     return out
 
 
+# ─────────────────────────── 나라장터 조달요청 ───────────────────────────
+async def fetch_g2b_request(days: int = 30) -> list[dict]:
+    end = date.today()
+    start = end - timedelta(days=max(days, 1))
+    rows = await _g2b(
+        "PrcrmntReqInfoService/getPrcrmntReqInfoListThng",
+        {"inqryDiv": "1",
+         "inqryBgnDt": start.strftime("%Y%m%d") + "0000",
+         "inqryEndDt": end.strftime("%Y%m%d") + "2359"},
+    )
+    out = []
+    for r in rows:
+        out.append(
+            normalize(
+                "g2b_request",
+                title=r.get("prcrmntReqNm"),
+                summary=r.get("rprsntSpecDtlsCntnts"),
+                target=r.get("rprsntPrdctClsfcNoNm"),
+                category=r.get("bsnsDivNm"),
+                org=r.get("orderInsttNm"),
+                apply_start=_ymd(r.get("rcptDt")),
+                apply_end="",
+                url=r.get("prcrmntReqInfoUrl"),
+                extra={"요청번호": r.get("prcrmntReqNo"), "예산액": r.get("bdgtAmt"),
+                       "대표품목": r.get("rprsntPrdctClsfcNoNm"), "계약형태": r.get("cntrctCnclsStleNm"),
+                       "납품장소": r.get("rprsntDlvrPlce"), "담당": r.get("prcrmntReqOfclNm")},
+            )
+        )
+    return out
+
+
 # ─────────────────────────── 나라장터 사전규격 ───────────────────────────
 async def fetch_g2b_prestandard(days: int = 30) -> list[dict]:
     end = date.today()
@@ -394,6 +425,7 @@ FETCHERS = {
     "bojo24": fetch_bojo24,
     "msit": fetch_msit,
     "g2b_order_plan": fetch_g2b_order_plan,
+    "g2b_request": fetch_g2b_request,
     "g2b_prestandard": fetch_g2b_prestandard,
     "g2b_bid": fetch_g2b_bid,
     "g2b_award": fetch_g2b_award,
