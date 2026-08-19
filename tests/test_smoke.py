@@ -18,8 +18,10 @@ def test_server_imports_and_registers_tools():
     assert "dart_search_company" in names
     assert "ecos_get_key_indicator" in names
     assert "kosis_search_statistics" in names
-    assert "data_go_kr_check_business_status" in names
+    assert "data_go_kr_generic_get" in names
     assert "koreaexim_get_exchange_rates" in names
+    assert "gov_search" in names
+    assert "gov_list_sources" in names
 
 
 @pytest.mark.parametrize(
@@ -28,8 +30,16 @@ def test_server_imports_and_registers_tools():
         ("dart_search_company", {"company_name": "삼성전자"}),
         ("ecos_get_key_indicator", {"indicator": "기준금리", "start": "202301", "end": "202312"}),
         ("kosis_search_statistics", {"keyword": "실업률"}),
-        ("data_go_kr_check_business_status", {"business_numbers": ["1234567890"]}),
+        (
+            "data_go_kr_generic_get",
+            {
+                "base_url": "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService",
+                "path": "getDataSetOpnStdBidPblancInfo",
+                "params": {"pageNo": 1, "numOfRows": 1},
+            },
+        ),
         ("koreaexim_get_exchange_rates", {}),
+        ("gov_search", {"query": "AI", "sources": ["기업마당"]}),
     ],
 )
 def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
@@ -41,6 +51,7 @@ def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
         "KOREAEXIM_EXCHANGE_API_KEY",
         "KOREAEXIM_LOAN_API_KEY",
         "KOREAEXIM_INTERNATIONAL_API_KEY",
+        "BIZINFO_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
@@ -48,3 +59,18 @@ def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
     # call_tool은 (content_list, is_error) 형태 등 SDK 버전에 따라 다를 수 있으므로
     # 예외 없이 반환되는지만 확인한다.
     assert result is not None
+
+
+def test_registry_resolves_sources_by_agency_name():
+    """모델은 '조달청'처럼 기관명으로 부르는 경우가 많다. 별칭으로도 잡혀야 한다."""
+    from korea_public_data_mcp import registry
+
+    # "조달청"은 조달 4단계 전부에 걸린 별칭이라 단계별 소스가 모두 잡혀야 한다
+    assert {s.id for s in registry.resolve(["조달청"])} == {
+        "g2b_order_plan", "g2b_request", "g2b_prestandard",
+        "g2b_bid", "g2b_award", "g2b_contract"}
+    assert [s.id for s in registry.resolve(["사전규격"])] == ["g2b_prestandard"]
+    assert [s.id for s in registry.resolve(["기업마당"])] == ["bizinfo"]
+    assert len(registry.resolve(None, domain="gov_program")) == 4
+    assert len(registry.resolve(None, domain="procurement")) == 6
+    assert registry.resolve(["존재하지않는기관"]) == []

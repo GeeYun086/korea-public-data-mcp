@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -16,8 +17,35 @@ from dotenv import load_dotenv
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 load_dotenv(_PROJECT_ROOT / ".env")
 
-CACHE_DIR = Path(os.environ.get("MCP_CACHE_DIR", ".cache"))
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def _resolve_cache_dir() -> Path:
+    """캐시 디렉터리를 정하고 생성한다.
+
+    .env 와 마찬가지로 '작업 디렉터리(cwd)'를 믿으면 안 된다. MCP 클라이언트가 서버를
+    띄울 때 cwd가 프로젝트 폴더가 아니라 앱 설치 경로나 시스템 폴더인 경우가 있고,
+    거기에 .cache 를 만들려다 PermissionError 로 서버가 통째로 죽는다.
+    (Claude Code는 cwd가 프로젝트라 안 터지고, Claude Desktop에서만 터졌다.)
+
+    그래서 기본값을 프로젝트 루트 기준 절대경로로 잡고, 그마저 쓸 수 없는 환경
+    (읽기 전용 설치 등)이면 임시 폴더로 물러난다. 캐시는 없어도 동작에 지장이 없으므로
+    캐시 문제로 서버가 못 뜨는 일은 없어야 한다.
+    """
+    for candidate in (
+        Path(os.environ["MCP_CACHE_DIR"]) if os.environ.get("MCP_CACHE_DIR") else None,
+        _PROJECT_ROOT / ".cache",
+        Path(tempfile.gettempdir()) / "korea-public-data-mcp-cache",
+    ):
+        if candidate is None:
+            continue
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            return candidate
+        except OSError:
+            continue
+    return Path(tempfile.gettempdir())
+
+
+CACHE_DIR = _resolve_cache_dir()
 
 CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", "3600"))
 RATE_LIMIT_PER_SECOND = float(os.environ.get("RATE_LIMIT_PER_SECOND", "3"))

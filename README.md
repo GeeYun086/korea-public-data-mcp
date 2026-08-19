@@ -1,134 +1,198 @@
 # korea-public-data-mcp
 
-대한민국 공공데이터(금융감독원 OpenDART, 한국은행 ECOS, 통계청 KOSIS, 공공데이터포털)를
-Claude가 직접 호출해서, 재무·경제·통계 수치를 **추측이 아니라 실제 API 응답 기반으로** 답하게
-만들어주는 MCP 서버입니다.
+대한민국 공공데이터를 Claude가 **직접 조회해서 답하게** 해주는 MCP 서버입니다.
 
-DART 전자공시 데이터를 붙여 재무제표 질문에 답하는 MCP들과 동일한 방식으로,
-"이 회사 작년 매출 얼마야?", "최근 기준금리 추이 알려줘", "우리나라 실업률 몇 %야?" 같은
-질문에 Claude가 이 서버의 도구를 호출해 최신 수치를 근거로 답하게 됩니다.
+기업 재무제표, 환율·금리 같은 경제 지표, 정부 지원사업 공고, 공공 입찰공고를 물어보면
+기관 API를 실제로 호출해 받아온 값으로 답합니다. 도구 이름을 외울 필요 없이 한국어로 물어보면 됩니다.
 
-> 이름은 임시로 `korea-public-data-mcp`로 잡았습니다. GitHub에 올릴 때 원하는 이름으로
-> 자유롭게 바꾸셔도 코드 동작에는 영향이 없습니다.
-
-## 왜 이렇게 만들었나 (설계 원칙)
-
-담당자분이 요청하신 세 가지 제약을 지키는 방향으로 설계했습니다.
-
-1. **LLM/외부 비용 없음** — 이 서버는 데이터를 "가져오기만" 합니다. 내부에서 어떤 LLM도
-   호출하지 않고, 유료 API도 쓰지 않습니다. 실제 추론/요약은 이 MCP를 호출하는 Claude가
-   하기 때문에, 서버 운영 비용은 사실상 0원(전기세/서버 자원 제외)입니다.
-2. **API 차단(IP 밴) 방지** — 정부 공공 API들은 초당/일 호출 제한을 넘기면 일시 차단되는
-   경우가 있습니다. 그래서:
-   - 모든 API 호출 앞단에 **초당 호출수 제한(토큰버킷)** 을 걸어 스스로 속도를 늦춥니다.
-   - 같은 질문을 반복하면 **메모리 캐시**로 재사용하고, DART 회사 목록처럼 큰 정적 파일은
-     **디스크 캐시**(기본 7일)로 재다운로드를 막습니다.
-   - 계정과목/기간을 하나씩 개별 호출하지 않고, **표 단위·기간 범위 단위로 한 번에** 받아옵니다
-     (예: 재무제표는 회사당 1회 호출로 전체 계정과목을 받고, 통계는 시작~종료 기간을 한 번에 조회).
-   - 사업자등록 상태조회처럼 배치가 지원되는 API는 **최대 100건을 한 번의 호출로 묶어서** 보냅니다.
-   - 429/5xx 응답에는 지수 백오프로 최대 3회까지만 재시도합니다.
-3. **각자 Docker로 실행** — 별도 서버를 띄우지 않고, 팀원 각자 로컬에서
-   `docker build` + `docker run`으로 띄워 자기 Claude에 연결하는 구조입니다.
-
-## 지금 포함된 API (1차 핵심 범위)
-
-전체 요청 목록(40여 개)을 한 번에 다 구현하면 유지보수가 어려워지는 범위라, 담당자분이
-가장 자주 찾을 핵심 4개 기관부터 먼저 완성도 있게 구현했습니다. 나머지는 [확장 가이드](#확장-가이드-새-api-추가하기)를 따라 같은 패턴으로 계속 추가하면 됩니다.
-
-| 기관 | 제공 도구 | 비고 |
-| --- | --- | --- |
-| 금융감독원 OpenDART | `dart_search_company`, `dart_get_financial_statements`, `dart_get_company_disclosures` | 회사명 검색 → corp_code → 재무제표/공시 순서로 사용 |
-| 한국은행 ECOS | `ecos_get_key_indicator`, `ecos_search_statistics`, `ecos_get_statistic_data` | 기준금리/환율/GDP/물가는 이름으로 바로 조회 가능 |
-| 통계청 KOSIS | `kosis_search_statistics`, `kosis_get_statistics_data` | 키워드 검색 후 표 단위로 기간 범위 일괄 조회 |
-| 공공데이터포털 (data.go.kr) | `data_go_kr_check_business_status`, `data_go_kr_generic_get` | 사업자등록 상태는 배치(최대 100건) 지원, 그 외 서비스는 범용 GET 도구로 임시 대응 |
-| 한국수출입은행 | `koreaexim_get_exchange_rates`, `koreaexim_get_loan_rates`, `koreaexim_get_international_rates` | data.go.kr이 아니라 koreaexim.go.kr 자체 사이트에서 발급. 환율/대출금리/국제금리가 별도 API 상품이라 **서비스별로 각각 신청해서 authkey 3개**를 받아야 함. 영업일 11시 이전/비영업일 조회 시 데이터 비어있을 수 있음 |
-
-## API 키 발급 안내
-
-아직 발급받은 키가 없어도 서버는 정상적으로 뜨고 도구 목록도 보입니다. 다만 실제로 도구를
-호출하면 아래 키가 없다는 안내 메시지가 반환되니, 필요한 것부터 순서대로 신청하시면 됩니다.
-
-| 기관 | 발급처 | 참고 |
-| --- | --- | --- |
-| OpenDART | https://opendart.fss.or.kr → 회원가입 → [인증키 신청/관리] | 가입 즉시 발급, 가장 빠름 |
-| ECOS | https://ecos.bok.or.kr/api/#/ | Open API 인증키 신청, 즉시~1일 이내 |
-| KOSIS | https://kosis.kr/openapi/index/index.jsp | "OpenAPI 활용신청", 승인까지 시간이 걸릴 수 있음 |
-| 공공데이터포털 | https://www.data.go.kr → 원하는 서비스 상세페이지 → [활용신청] | 서비스별로 별도 신청 필요. 우선 "국세청_사업자등록정보 진위확인 및 상태조회"부터 신청 추천 |
-| 한국수출입은행 | https://www.koreaexim.go.kr/ir/HPHKIR019M01 → Open API 명세 → 인증키 발급신청 | data.go.kr 경유가 아니라 koreaexim.go.kr 자체 발급. 즉시~당일 |
-
-키를 받으면 `.env.example`을 `.env`로 복사해서 채워 넣으세요.
-
-```bash
-cp .env.example .env
-# .env 파일을 열어 발급받은 키 입력
+```
+중소기업 수출 지원사업 뭐 있어?
+조달청 사전규격에 시스템 관련 뭐 올라왔어?
+삼성전자 2024년 재무제표 알려줘
+작년부터 지금까지 기준금리 어떻게 변했어?
 ```
 
-## 빠른 시작 (Docker)
+---
 
-```bash
-git clone <이 레포 주소>
-cd korea-public-data-mcp
-cp .env.example .env   # 키 채워넣기 (없어도 일단 진행 가능)
-docker build -t korea-public-data-mcp .
+## 분야별 진행 현황
+
+| 분야 | 상태 | 소스 |
+| --- | --- | --- |
+| **금융** | ✅ 완료 | 4곳 |
+| **정부사업 · 조달** | ✅ 완료 | 10곳 |
+| 학술 / 연구 / 교육 | ⬜ 예정 | — |
+| 지식재산권 / 특허 | ⬜ 예정 | — |
+| 법률 / 행정 / 안전 | ⬜ 예정 | — |
+
+### 금융
+
+| 기관 | 제공 데이터 | 출처 |
+| --- | --- | --- |
+| 금융감독원 OpenDART | 상장·외감법인 재무제표, 공시, 기업코드 | [opendart.fss.or.kr](https://opendart.fss.or.kr) |
+| 한국은행 ECOS | 기준금리, 환율, GDP, 물가 등 거시경제 통계 | [ecos.bok.or.kr](https://ecos.bok.or.kr) |
+| 통계청 KOSIS | 국가통계 13만종 | [kosis.kr](https://kosis.kr/openapi) |
+| 한국수출입은행 | 현재환율, 대출금리, 국제금리 | [koreaexim.go.kr](https://www.koreaexim.go.kr/ir/HPHKIR019M01) |
+
+### 정부사업 — 지원사업 4곳
+
+| 소스 | 제공 데이터 | 출처 |
+| --- | --- | --- |
+| 기업마당 (중소벤처기업부) | 중소기업·소상공인 지원사업 공고. 금융·기술·인력·수출·내수·창업·경영 8개 분야. 중앙부처와 지자체 공고 포함 | [bizinfo.go.kr](https://www.bizinfo.go.kr/apiDetail.do?id=bizinfoApi) |
+| K-Startup (창업진흥원) | 창업 지원사업 공고. 예비창업자~창업 7년 이내 | [data.go.kr 15125364](https://www.data.go.kr/data/15125364/openapi.do) |
+| 보조금24 (행정안전부) | 정부·지자체 공공서비스(혜택) 목록 | [data.go.kr 15113968](https://www.data.go.kr/data/15113968/openapi.do) |
+| 과기정통부 사업공고 | R&D·국제협력·인프라 사업 공모 공고 | [data.go.kr 15074634](https://www.data.go.kr/data/15074634/openapi.do) |
+
+### 정부사업 — 조달 6단계 (조달청 나라장터)
+
+한 사업이 아래 순서로 흘러갑니다. **앞 단계일수록 먼저 알 수 있습니다.**
+
+```
+발주계획  →  조달요청  →  사전규격  →  입찰공고  →  낙찰  →  계약
+수개월 전     구매요청    2주~1달 전     지금       결과     완료
 ```
 
-Claude Desktop / Claude Code의 MCP 설정(`claude_desktop_config.json` 등)에 아래처럼 등록합니다.
+| 단계 | 제공 데이터 | 출처 |
+| --- | --- | --- |
+| 발주계획 | 공공기관이 미리 공개하는 발주 예정 목록. 사업명·발주기관·발주월·발주금액 | [data.go.kr 15129462](https://www.data.go.kr/data/15129462/openapi.do) |
+| 조달요청 | 수요기관이 조달청에 구매를 요청한 건. 요청명·수요기관·예산액 | [data.go.kr 15129468](https://www.data.go.kr/data/15129468/openapi.do) |
+| 사전규격 | 입찰 전 의견수렴 단계의 규격안. 사업명·수요기관·배정예산·의견마감 | [data.go.kr 15129437](https://www.data.go.kr/data/15129437/openapi.do) |
+| 입찰공고 | 공고명·공고기관·수요기관·배정예산·추정가격·입찰마감 | [data.go.kr 15058815](https://www.data.go.kr/data/15058815/openapi.do) |
+| 낙찰 | 낙찰업체·낙찰금액·낙찰률·참여업체수 | [data.go.kr 15129397](https://www.data.go.kr/data/15129397/openapi.do) |
+| 계약 | 계약명·수요기관·계약금액·계약방법 | [data.go.kr 15129427](https://www.data.go.kr/data/15129427/openapi.do) |
+
+### 그 밖에 호출 가능한 서비스
+
+아래는 공고가 아니라 통계·단가·코드사전 성격이라 `gov_search` 결과에 넣지 않았습니다.
+인증키 권한은 확보되어 있고 엔드포인트도 확인되어, `data_go_kr_generic_get` 으로 바로 호출됩니다.
+`gov_list_sources` 를 호출하면 주소와 오퍼레이션명이 함께 나옵니다.
+
+| 서비스 | 쓰임 | 출처 |
+| --- | --- | --- |
+| 공공조달통계정보 | 기관별·기업별·계약방법별 조달 실적 집계 | [15129412](https://www.data.go.kr/data/15129412/openapi.do) |
+| 나라장터 가격정보현황 | 시설공통자재·시장시공 단가. 입찰 가격 산정 참고 | [15129415](https://www.data.go.kr/data/15129415/openapi.do) |
+| 나라장터 계약과정통합공개 | 계약 체결 과정 통합 공개 | [15129459](https://www.data.go.kr/data/15129459/openapi.do) |
+| 나라장터 사용자정보 | 등록 조달업체·수요기관 정보 | [15129466](https://www.data.go.kr/data/15129466/openapi.do) |
+| 나라장터 업종·근거법규 | 업종 코드와 근거 법령. 입찰 참가자격 해석용 | [15129467](https://www.data.go.kr/data/15129467/openapi.do) |
+| 나라장터쇼핑몰 품목정보 | 종합쇼핑몰 물품 카탈로그 | [15129471](https://www.data.go.kr/data/15129471/openapi.do) |
+| 조달청 물품목록정보 | 물품 분류번호 사전 | [15129417](https://www.data.go.kr/data/15129417/openapi.do) |
+| 조달청 물품관리정보 | 물품 내용연수 고시 | [15129470](https://www.data.go.kr/data/15129470/openapi.do) |
+| 창업진흥원 창업공간플랫폼 | 창업 보육센터·공간 정보 | [15125365](https://www.data.go.kr/data/15125365/openapi.do) |
+| 한국연구재단 NRIC | 연구인력 채용정보 | [15088749](https://www.data.go.kr/data/15088749/openapi.do) |
+
+---
+
+## 인증키 현황
+
+발급처는 5곳이며, **공공데이터포털 키 하나가 소스 7곳을 담당**합니다.
+
+| 발급처 | 환경변수 | 상태 | 발급 방법 |
+| --- | --- | --- | --- |
+| 금융감독원 OpenDART | `DART_API_KEY` | ✅ | 회원가입 → 인증키 신청, 즉시 |
+| 한국은행 ECOS | `ECOS_API_KEY` | ✅ | Open API 신청, 즉시~1일 |
+| 통계청 KOSIS | `KOSIS_API_KEY` | ✅ | OpenAPI 활용신청 후 승인 |
+| 공공데이터포털 | `DATA_GO_KR_API_KEY` | ✅ | 서비스 상세페이지에서 활용신청 |
+| 한국수출입은행 | `KOREAEXIM_EXCHANGE_API_KEY`<br>`KOREAEXIM_LOAN_API_KEY`<br>`KOREAEXIM_INTERNATIONAL_API_KEY` | ✅ | 상품별로 각각 신청, 즉시 |
+| 기업마당 | `BIZINFO_API_KEY` | ✅ | 신청서 작성 → 이메일 수신, 1일 |
+| NTIS | `NTIS_API_KEY` | ⏸ 예정 | 소속기관 등록 + 서버 IP 필요, 승인 수일 |
+| AI Hub | `AIHUB_API_KEY` | ⏸ 예정 | 회원가입 → 버튼 클릭, 즉시 |
+
+### 공공데이터포털 인증키는 계정당 1개입니다
+
+서비스마다 키가 발급되지 않습니다. **키 1개에 서비스별 사용 권한이 붙는 구조**입니다.
+서비스를 몇 개 신청하든 `.env` 에 넣을 값은 하나뿐입니다.
+
+포털이 인증키를 Encoding / Decoding 두 형태로 보여주는데, **Decoding 키**를 넣어야 합니다.
+
+---
+
+## 설치 및 실행
+
+```bash
+python -m venv .venv
+.venv/Scripts/pip install -e .
+cp .env.example .env      # 발급받은 키 입력
+```
+
+키가 하나도 없어도 서버는 정상적으로 뜹니다. 키가 필요한 도구를 호출할 때만 발급 안내가 나옵니다.
+
+### Claude Desktop
+
+`%APPDATA%\Claude\claude_desktop_config.json` 의 `mcpServers` 에 추가한 뒤 앱을 재시작합니다.
 
 ```json
-{
-  "mcpServers": {
-    "korea-public-data": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "--env-file", "/절대경로/korea-public-data-mcp/.env",
-        "korea-public-data-mcp"
-      ]
-    }
-  }
+"korea-public-data": {
+  "command": "C:\\경로\\public-data-mcp\\.venv\\Scripts\\python.exe",
+  "args": ["-m", "korea_public_data_mcp.server"]
 }
 ```
 
-Claude를 재시작하면 도구 목록에 `dart_*`, `ecos_*`, `kosis_*`, `data_go_kr_*` 도구들이
-나타납니다. 이제 "삼성전자 2023년 매출액 알려줘" 같은 질문을 하면 Claude가 이 도구들을
-호출해서 실제 수치로 답합니다.
+### Claude Code
 
-### 로컬(Docker 없이) 개발/테스트
+프로젝트 루트에 `.mcp.json` 을 만들거나 아래로 등록합니다.
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-pip install pytest
-pytest -q                      # 키 없이도 통과하는 스모크 테스트
-python -m korea_public_data_mcp.server   # stdio로 직접 실행해보기 (Ctrl+C로 종료)
+claude mcp add korea-public-data -- C:\경로\public-data-mcp\.venv\Scripts\python.exe -m korea_public_data_mcp.server
 ```
 
-## 확장 가이드 (새 API 추가하기)
+### Docker
 
-담당자분이 주신 전체 목록(RISS, KIPRIS, 국가법령정보, 나라장터, 서울 열린데이터광장 등)은
-아래 패턴을 그대로 반복하면 됩니다. 예시로 새 기관 `foo`를 추가한다면:
+stdio 통신이라 포트를 열지 않습니다. 인증키는 반드시 실행 시점에 주입하세요.
 
-1. `src/korea_public_data_mcp/config.py`의 `API_KEYS`에 `foo` 항목 추가 (env var, 발급 URL)
-2. `src/korea_public_data_mcp/clients/foo.py` 작성 — `core/http_client.get_json`을 사용해
-   실제 엔드포인트 호출 로직만 작성 (재시도/속도제한은 공용 클라이언트가 자동 처리)
-3. `src/korea_public_data_mcp/tools/foo_tools.py` 작성 — `@mcp.tool()` 데코레이터로
-   client 함수를 감싸고, `MissingApiKeyError`를 잡아 안내 메시지로 반환, `cached_call`로 캐싱
-4. `src/korea_public_data_mcp/server.py`에서 `foo_tools.register(mcp)` 한 줄 추가
-5. `.env.example`, README 표에 항목 추가
+```bash
+docker build -t korea-public-data-mcp .
+docker run -i --rm --env-file .env korea-public-data-mcp
+```
 
-이 구조 덕분에 새 API를 추가해도 차단 방지(속도 제한/캐시/배치) 로직을 매번 새로 짤 필요가
-없습니다.
+---
 
-## 다음 확장 후보 (담당자 요청 목록 기준)
+## 제공 도구 (14개)
 
-- 법률/행정: 국가법령정보 Open API, 열린국회정보 API
-- 조달/사업: 나라장터(g2b), 조달데이터허브, NTIS 국가과학기술정보
-- 학술: RISS, KISTI, 국립중앙도서관 OpenAPI
-- 지식재산권: KIPRIS Plus (특허·상표)
-- 지역: 서울 열린데이터광장, 경기데이터드림
+### 정부사업 · 조달
 
-우선순위나 다음에 붙일 API를 알려주시면 그 항목부터 이어서 구현해 드릴게요.
+여러 기관이 같은 성격의 "공고"를 제공하므로 하나의 검색 도구로 묶었습니다.
+
+| 도구 | 설명 |
+| --- | --- |
+| `gov_search` | 10개 소스를 한 번에 검색합니다. 기관을 지정하면 그쪽만 조회하고, 지정하지 않으면 전체를 훑되 기관별 상한(기본 10건)을 적용합니다 |
+| `gov_list_sources` | 조회 가능한 소스 목록과 각 소스의 특성을 반환합니다. `generic_get` 으로 호출할 수 있는 서비스의 주소·오퍼레이션명도 함께 나옵니다 |
+
+`gov_search` 인자
+
+| 인자 | 설명 |
+| --- | --- |
+| `query` | 공고명·요약·지원대상·분야·기관명에서 찾을 키워드. 공백으로 나눈 여러 단어는 AND |
+| `sources` | 기관 지정 (예: `["조달청"]`, `["기업마당","K-Startup"]`) |
+| `domain` | `gov_program`(지원사업) 또는 `procurement`(조달) |
+| `target` | 지원대상 (예: `중소기업`, `소상공인`, `창업`) |
+| `open_only` | 접수 마감된 공고 제외 (기본 `true`) |
+| `limit_per_source` | 기관별 최대 반환 건수 (기본 10) |
+
+### 금융
+
+기관마다 데이터 성격이 완전히 달라 개별 도구로 제공합니다.
+
+| 도구 | 설명 |
+| --- | --- |
+| `dart_search_company` | 회사명으로 기업코드를 찾습니다. 다른 DART 도구보다 먼저 호출합니다 |
+| `dart_get_financial_statements` | 재무제표 전체를 한 번에 조회합니다 (연결 `CFS` / 별도 `OFS`) |
+| `dart_get_company_disclosures` | 기간별 공시 목록을 조회합니다 |
+| `ecos_get_key_indicator` | 기준금리·원달러환율·GDP성장률·소비자물가지수를 이름으로 바로 조회합니다 |
+| `ecos_search_statistics` | 그 밖의 한국은행 통계표를 검색합니다 |
+| `ecos_get_statistic_data` | 통계표 코드로 실제 수치를 조회합니다 |
+| `kosis_search_statistics` | 통계청 통계표를 검색합니다 |
+| `kosis_get_statistics_data` | 통계표를 기간 범위 단위로 일괄 조회합니다 |
+| `koreaexim_get_exchange_rates` | 환율 (매매기준율·전신환매매율) |
+| `koreaexim_get_loan_rates` | 대출금리 |
+| `koreaexim_get_international_rates` | 국제금리 (SOFR·ESTR 등) |
+
+### 공통
+
+| 도구 | 설명 |
+| --- | --- |
+| `data_go_kr_generic_get` | 공공데이터포털의 다른 서비스를 호출합니다. 포털에서 활용신청만 하면 코드 수정 없이 사용할 수 있습니다 |
+
+---
 
 ## 라이선스
 
-내부용으로 자유롭게 사용/수정하세요.
+각 기관 API의 이용약관과 출처표시 의무를 따릅니다.

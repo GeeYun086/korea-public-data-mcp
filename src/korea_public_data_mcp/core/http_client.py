@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+import logging
+
 import httpx
 from tenacity import (
     retry,
@@ -15,6 +17,12 @@ from tenacity import (
 )
 
 from korea_public_data_mcp.core.rate_limiter import throttle
+
+# httpx는 INFO 레벨에서 요청 URL을 통째로 찍는데, 공공 API는 인증키를 쿼리스트링으로
+# 받으므로 로그에 serviceKey/crtfcKey가 평문으로 남는다. MCP는 stderr가 클라이언트로
+# 수집될 수 있어 그대로 두면 키가 새어나간다. 경고 이상만 남긴다.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 _TIMEOUT = httpx.Timeout(15.0, connect=10.0)
 

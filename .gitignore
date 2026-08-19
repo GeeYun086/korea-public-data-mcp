@@ -8,3 +8,6 @@ venv/
 dist/
 build/
 .pytest_cache/
+
+# Claude Code MCP 설정 — 실행 파일 절대경로가 들어가므로 각자 로컬에서 생성
+.mcp.json
