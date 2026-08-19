@@ -199,21 +199,13 @@ async def fetch_g2b_bid(days: int = 14) -> list[dict]:
     """개방표준 서비스. 조회 기간이 필수라 최근 days 일로 범위를 잡는다."""
     end = date.today()
     start = end - timedelta(days=max(days, 1))
-    data = await get_json(
-        "data_go_kr",
-        "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService/getDataSetOpnStdBidPblancInfo",
-        params={
-            "serviceKey": get_api_key("data_go_kr"),
-            "type": "json",
-            "pageNo": 1,
-            "numOfRows": _G2B_FETCH_LIMIT,
-            "bidNtceBgnDt": start.strftime("%Y%m%d") + "0000",
-            "bidNtceEndDt": end.strftime("%Y%m%d") + "2359",
-        },
+    rows = await _g2b(
+        "PubDataOpnStdService/getDataSetOpnStdBidPblancInfo",
+        {"bidNtceBgnDt": start.strftime("%Y%m%d") + "0000",
+         "bidNtceEndDt": end.strftime("%Y%m%d") + "2359"},
     )
-    body = (data.get("response") or {}).get("body") or {}
     out = []
-    for r in body.get("items") or []:
+    for r in rows:
         out.append(
             normalize(
                 "g2b_bid",
@@ -233,10 +225,140 @@ async def fetch_g2b_bid(days: int = 14) -> list[dict]:
     return out
 
 
+async def _g2b(path: str, params: dict, limit: int = _G2B_FETCH_LIMIT) -> list[dict]:
+    """나라장터 계열 API는 페이지 1이 '가장 오래된' 건이다.
+
+    사전규격만 봐도 30일 조회 시 page 1은 7/20, 마지막 페이지가 8/19다.
+    그냥 page 1을 받으면 이미 마감된 옛날 건만 손에 들어오므로,
+    총 건수를 먼저 확인한 뒤 마지막 페이지(=최신)를 가져온다.
+    """
+    url = f"https://apis.data.go.kr/1230000/ao/{path}"
+    key = get_api_key("data_go_kr")
+    base = {"serviceKey": key, "type": "json", **params}
+
+    head = await get_json("data_go_kr", url, params={**base, "pageNo": 1, "numOfRows": 1})
+    body = ((head.get("response") or {}).get("body") or {})
+    total = int(body.get("totalCount") or 0)
+    if total <= 0:
+        return []
+
+    last_page = max(1, -(-total // limit))  # 올림 나눗셈
+
+    async def page(no: int) -> list[dict]:
+        data = await get_json("data_go_kr", url, params={**base, "pageNo": no, "numOfRows": limit})
+        return ((data.get("response") or {}).get("body") or {}).get("items") or []
+
+    rows = await page(last_page)
+    # 마지막 페이지는 나머지만 담겨 몇 건 안 되는 경우가 많다(예: 5,526건/300 -> 126건).
+    # 표본이 너무 얇으면 키워드 검색이 헛돌므로 바로 앞 페이지까지 붙인다.
+    if len(rows) < limit and last_page > 1:
+        rows = await page(last_page - 1) + rows
+    return rows
+
+
+# ─────────────────────────── 나라장터 발주계획 ───────────────────────────
+async def fetch_g2b_order_plan(year: str = "") -> list[dict]:
+    """발주계획은 기간 파라미터가 inqryBgnDate/inqryEndDate(8자리)다.
+    입찰공고 쪽의 inqryBgnDt(12자리)와 이름이 달라 혼동하기 쉽다."""
+    end = date.today()
+    start = date(end.year, 1, 1) if not year else date(int(year), 1, 1)
+    rows = await _g2b(
+        "OrderPlanSttusService/getOrderPlanSttusListThng",
+        {"inqryDiv": "1",
+         "inqryBgnDate": start.strftime("%Y%m%d"),
+         "inqryEndDate": end.strftime("%Y%m%d")},
+    )
+    out = []
+    for r in rows:
+        month = str(r.get("orderMnth") or "").zfill(2)
+        out.append(
+            normalize(
+                "g2b_order_plan",
+                title=(r.get("bizNm") or "").strip(),
+                summary=r.get("usgCntnts") or r.get("specCntnts"),
+                target=r.get("prdctClsfcNoNm"),
+                category=r.get("bsnsDivNm"),
+                org=r.get("orderInsttNm") or r.get("totlmngInsttNm"),
+                apply_start=f"{r.get('orderYear')}-{month}-01" if month.isdigit() else "",
+                apply_end="",
+                url=r.get("orderPlanDtlUrl"),
+                extra={"발주예정월": f"{r.get('orderYear')}-{month}", "발주금액": r.get("sumOrderAmt"),
+                       "계약방법": r.get("cntrctMthdNm"), "조달방식": r.get("prcrmntMethd"),
+                       "담당": r.get("ofclNm"), "연락처": r.get("telNo")},
+            )
+        )
+    return out
+
+
+# ─────────────────────────── 나라장터 사전규격 ───────────────────────────
+async def fetch_g2b_prestandard(days: int = 30) -> list[dict]:
+    end = date.today()
+    start = end - timedelta(days=max(days, 1))
+    rows = await _g2b(
+        "HrcspSsstndrdInfoService/getPublicPrcureThngInfoThng",
+        {"inqryDiv": "1",
+         "inqryBgnDt": start.strftime("%Y%m%d") + "0000",
+         "inqryEndDt": end.strftime("%Y%m%d") + "2359"},
+    )
+    out = []
+    for r in rows:
+        out.append(
+            normalize(
+                "g2b_prestandard",
+                title=r.get("prdctClsfcNoNm"),
+                summary=r.get("prdctDtlList"),
+                target="",
+                category=r.get("bsnsDivNm"),
+                org=r.get("rlDminsttNm") or r.get("orderInsttNm"),
+                apply_start=_ymd(r.get("rcptDt")),
+                apply_end=_ymd(r.get("opninRgstClseDt")),  # 의견등록 마감
+                url=r.get("specDocFileUrl1"),
+                extra={"배정예산": r.get("asignBdgtAmt"), "의견마감": r.get("opninRgstClseDt"),
+                       "납품기한": _ymd(r.get("dlvrTmlmtDt")), "SW사업여부": r.get("swBizObjYn"),
+                       "담당": r.get("ofclNm"), "규격번호": r.get("bfSpecRgstNo")},
+            )
+        )
+    return out
+
+
+# ─────────────────────────── 나라장터 계약정보 ───────────────────────────
+async def fetch_g2b_contract(days: int = 7) -> list[dict]:
+    """계약정보는 조회 기간 상한이 7일(양끝 포함)이다.
+    8일치를 요청하면 resultCode 07 '입력범위값 초과 에러'가 떨어지므로 간격은 6일까지만 준다."""
+    end = date.today()
+    start = end - timedelta(days=min(max(days, 1), 7) - 1)
+    rows = await _g2b(
+        "PubDataOpnStdService/getDataSetOpnStdCntrctInfo",
+        {"cntrctCnclsBgnDate": start.strftime("%Y%m%d"),
+         "cntrctCnclsEndDate": end.strftime("%Y%m%d")},
+    )
+    out = []
+    for r in rows:
+        out.append(
+            normalize(
+                "g2b_contract",
+                title=r.get("cntrctNm"),
+                summary="",
+                target="",
+                category=r.get("bsnsDivNm"),
+                org=r.get("dmndInsttNm") or r.get("cntrctInsttNm"),
+                apply_start=_ymd(r.get("cntrctCnclsDate")),
+                apply_end="",
+                url=r.get("cntrctDtlUrl") or "",
+                extra={"계약금액": r.get("thtmCntrctAmt") or r.get("totCntrctAmt"),
+                       "계약형태": r.get("cntrctCnclsSttusNm"), "계약번호": r.get("cntrctNo")},
+            )
+        )
+    return out
+
+
 FETCHERS = {
     "bizinfo": fetch_bizinfo,
     "kstartup": fetch_kstartup,
     "bojo24": fetch_bojo24,
     "msit": fetch_msit,
+    "g2b_order_plan": fetch_g2b_order_plan,
+    "g2b_prestandard": fetch_g2b_prestandard,
     "g2b_bid": fetch_g2b_bid,
+    "g2b_contract": fetch_g2b_contract,
 }

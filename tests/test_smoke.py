@@ -65,8 +65,11 @@ def test_registry_resolves_sources_by_agency_name():
     """모델은 '조달청'처럼 기관명으로 부르는 경우가 많다. 별칭으로도 잡혀야 한다."""
     from korea_public_data_mcp import registry
 
-    assert [s.id for s in registry.resolve(["조달청"])] == ["g2b_bid"]
+    # "조달청"은 조달 4단계 전부에 걸린 별칭이라 단계별 소스가 모두 잡혀야 한다
+    assert {s.id for s in registry.resolve(["조달청"])} == {
+        "g2b_order_plan", "g2b_prestandard", "g2b_bid", "g2b_contract"}
+    assert [s.id for s in registry.resolve(["사전규격"])] == ["g2b_prestandard"]
     assert [s.id for s in registry.resolve(["기업마당"])] == ["bizinfo"]
-    assert registry.resolve(None, domain="procurement") == [registry.SOURCES["g2b_bid"]]
     assert len(registry.resolve(None, domain="gov_program")) == 4
+    assert len(registry.resolve(None, domain="procurement")) == 4
     assert registry.resolve(["존재하지않는기관"]) == []

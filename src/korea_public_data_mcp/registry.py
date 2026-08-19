@@ -60,6 +60,28 @@ SOURCES: dict[str, Source] = {
         aliases=("과기정통부", "과학기술정보통신부", "msit"),
         note="부처 본부 게시판 공고만 제공한다. IITP·한국연구재단 등 산하 전문기관 공고는 포함되지 않는다(실호출 확인).",
     ),
+    # ── 조달은 한 사업이 아래 순서로 흘러간다. 앞 단계일수록 먼저 알 수 있다. ──
+    #    발주계획(수개월 전) → 사전규격(2주~1달 전) → 입찰공고 → 계약
+    "g2b_order_plan": Source(
+        id="g2b_order_plan",
+        name="나라장터 발주계획",
+        domain="procurement",
+        api_key="data_go_kr",
+        description="공공기관이 연간·분기 단위로 미리 공개하는 발주 예정 목록. 사업명·발주기관·발주월·계약방법·발주금액 제공",
+        aliases=("발주계획", "발주", "나라장터", "조달청", "조달", "g2b"),
+        stage="발주계획",
+        note="입찰공고보다 수개월 앞선 신호다. 아직 공고가 안 뜬 사업을 미리 파악할 때 쓴다.",
+    ),
+    "g2b_prestandard": Source(
+        id="g2b_prestandard",
+        name="나라장터 사전규격",
+        domain="procurement",
+        api_key="data_go_kr",
+        description="입찰공고 전 의견수렴 단계에 공개되는 규격안. 사업명·수요기관·배정예산·의견등록 마감일시 제공",
+        aliases=("사전규격", "규격", "사전공개", "나라장터", "조달청", "조달", "g2b"),
+        stage="사전규격",
+        note="입찰공고보다 2주~1달 앞선 신호다. 의견등록 마감 전이면 규격에 의견을 낼 수 있다.",
+    ),
     "g2b_bid": Source(
         id="g2b_bid",
         name="나라장터 입찰공고",
@@ -69,6 +91,16 @@ SOURCES: dict[str, Source] = {
         aliases=("나라장터", "조달청", "입찰", "입찰공고", "g2b", "조달"),
         stage="입찰공고",
         note="건수가 매우 많다(2주 약 1.6만 건). 조회 기간을 반드시 좁혀서 호출한다.",
+    ),
+    "g2b_contract": Source(
+        id="g2b_contract",
+        name="나라장터 계약정보",
+        domain="procurement",
+        api_key="data_go_kr",
+        description="체결이 끝난 계약 내역. 계약명·수요기관·계약금액·계약방법 제공",
+        aliases=("계약", "계약정보", "나라장터", "조달청", "조달", "g2b"),
+        stage="계약",
+        note="이미 끝난 건이라 사업 발굴용이 아니라 실적·경쟁사 분석용이다.",
     ),
 }
 
