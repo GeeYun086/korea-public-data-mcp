@@ -12,6 +12,7 @@ from korea_public_data_mcp.tools import (
     dart_tools,
     data_go_kr_tools,
     ecos_tools,
+    gov_tools,
     koreaexim_tools,
     kosis_tools,
 )
@@ -20,10 +21,14 @@ mcp = MCPServer(
     "korea-public-data",
     instructions=(
         "대한민국 공공데이터(금융감독원 OpenDART 재무제표/공시, 한국은행 ECOS 거시경제지표, "
-        "통계청 KOSIS 국가통계, 공공데이터포털 data.go.kr, 한국수출입은행 환율/금리)를 조회하는 도구 모음입니다. "
+        "통계청 KOSIS 국가통계, 공공데이터포털 data.go.kr, 한국수출입은행 환율/금리)와 "
+        "정부 지원사업·공공 입찰공고(기업마당, K-Startup, 보조금24, 과기정통부, 나라장터)를 "
+        "조회하는 도구 모음입니다. "
         "수치나 통계를 답할 때는 반드시 이 도구들로 조회한 실제 값을 근거로 답하고, "
         "임의로 추정하지 마세요. 회사 재무 정보는 dart_search_company로 corp_code를 먼저 "
-        "확인한 뒤 dart_get_financial_statements를 호출하세요."
+        "확인한 뒤 dart_get_financial_statements를 호출하세요. "
+        "정부 지원사업이나 입찰공고를 찾을 때는 gov_search를 쓰고, 질문에 기관명이 "
+        "언급되면 sources에 그 기관을 지정하세요."
     ),
 )
 
@@ -32,6 +37,7 @@ ecos_tools.register(mcp)
 kosis_tools.register(mcp)
 data_go_kr_tools.register(mcp)
 koreaexim_tools.register(mcp)
+gov_tools.register(mcp)
 
 
 def main() -> None:

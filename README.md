@@ -25,7 +25,6 @@ DART 전자공시 데이터를 붙여 재무제표 질문에 답하는 MCP들과
      **디스크 캐시**(기본 7일)로 재다운로드를 막습니다.
    - 계정과목/기간을 하나씩 개별 호출하지 않고, **표 단위·기간 범위 단위로 한 번에** 받아옵니다
      (예: 재무제표는 회사당 1회 호출로 전체 계정과목을 받고, 통계는 시작~종료 기간을 한 번에 조회).
-   - 사업자등록 상태조회처럼 배치가 지원되는 API는 **최대 100건을 한 번의 호출로 묶어서** 보냅니다.
    - 429/5xx 응답에는 지수 백오프로 최대 3회까지만 재시도합니다.
 3. **각자 Docker로 실행** — 별도 서버를 띄우지 않고, 팀원 각자 로컬에서
    `docker build` + `docker run`으로 띄워 자기 Claude에 연결하는 구조입니다.
@@ -40,7 +39,7 @@ DART 전자공시 데이터를 붙여 재무제표 질문에 답하는 MCP들과
 | 금융감독원 OpenDART | `dart_search_company`, `dart_get_financial_statements`, `dart_get_company_disclosures` | 회사명 검색 → corp_code → 재무제표/공시 순서로 사용 |
 | 한국은행 ECOS | `ecos_get_key_indicator`, `ecos_search_statistics`, `ecos_get_statistic_data` | 기준금리/환율/GDP/물가는 이름으로 바로 조회 가능 |
 | 통계청 KOSIS | `kosis_search_statistics`, `kosis_get_statistics_data` | 키워드 검색 후 표 단위로 기간 범위 일괄 조회 |
-| 공공데이터포털 (data.go.kr) | `data_go_kr_check_business_status`, `data_go_kr_generic_get` | 사업자등록 상태는 배치(최대 100건) 지원, 그 외 서비스는 범용 GET 도구로 임시 대응 |
+| 공공데이터포털 (data.go.kr) | `data_go_kr_generic_get` | 인증키는 계정당 1개. 포털에서 서비스별 [활용신청]만 해두면 코드 수정 없이 이 도구로 호출 가능 |
 | 한국수출입은행 | `koreaexim_get_exchange_rates`, `koreaexim_get_loan_rates`, `koreaexim_get_international_rates` | data.go.kr이 아니라 koreaexim.go.kr 자체 사이트에서 발급. 환율/대출금리/국제금리가 별도 API 상품이라 **서비스별로 각각 신청해서 authkey 3개**를 받아야 함. 영업일 11시 이전/비영업일 조회 시 데이터 비어있을 수 있음 |
 
 ## API 키 발급 안내
@@ -53,7 +52,7 @@ DART 전자공시 데이터를 붙여 재무제표 질문에 답하는 MCP들과
 | OpenDART | https://opendart.fss.or.kr → 회원가입 → [인증키 신청/관리] | 가입 즉시 발급, 가장 빠름 |
 | ECOS | https://ecos.bok.or.kr/api/#/ | Open API 인증키 신청, 즉시~1일 이내 |
 | KOSIS | https://kosis.kr/openapi/index/index.jsp | "OpenAPI 활용신청", 승인까지 시간이 걸릴 수 있음 |
-| 공공데이터포털 | https://www.data.go.kr → 원하는 서비스 상세페이지 → [활용신청] | 서비스별로 별도 신청 필요. 우선 "국세청_사업자등록정보 진위확인 및 상태조회"부터 신청 추천 |
+| 공공데이터포털 | https://www.data.go.kr → 원하는 서비스 상세페이지 → [활용신청] | 인증키는 계정당 1개이고 서비스별 신청은 '권한 부여'다. 키는 **Decoding** 값을 넣을 것 |
 | 한국수출입은행 | https://www.koreaexim.go.kr/ir/HPHKIR019M01 → Open API 명세 → 인증키 발급신청 | data.go.kr 경유가 아니라 koreaexim.go.kr 자체 발급. 즉시~당일 |
 
 키를 받으면 `.env.example`을 `.env`로 복사해서 채워 넣으세요.
