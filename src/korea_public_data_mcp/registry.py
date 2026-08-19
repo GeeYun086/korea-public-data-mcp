@@ -92,6 +92,16 @@ SOURCES: dict[str, Source] = {
         stage="입찰공고",
         note="건수가 매우 많다(2주 약 1.6만 건). 조회 기간을 반드시 좁혀서 호출한다.",
     ),
+    "g2b_award": Source(
+        id="g2b_award",
+        name="나라장터 낙찰정보",
+        domain="procurement",
+        api_key="data_go_kr",
+        description="개찰이 끝난 건의 낙찰 결과. 낙찰업체명·사업자번호·낙찰금액·낙찰률·참여업체수 제공",
+        aliases=("낙찰", "낙찰정보", "개찰", "나라장터", "조달청", "조달", "g2b"),
+        stage="낙찰",
+        note="낙찰률과 참여업체수가 있어 경쟁 강도와 가격 수준을 가늠할 때 쓴다.",
+    ),
     "g2b_contract": Source(
         id="g2b_contract",
         name="나라장터 계약정보",

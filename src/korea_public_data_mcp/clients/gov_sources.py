@@ -232,7 +232,10 @@ async def _g2b(path: str, params: dict, limit: int = _G2B_FETCH_LIMIT) -> list[d
     그냥 page 1을 받으면 이미 마감된 옛날 건만 손에 들어오므로,
     총 건수를 먼저 확인한 뒤 마지막 페이지(=최신)를 가져온다.
     """
-    url = f"https://apis.data.go.kr/1230000/ao/{path}"
+    # 조달청 API는 서비스별로 ao/ad/as/at 하위 경로가 다르다. path 에 접두어가 이미
+    # 붙어 있으면 그대로 쓰고, 없으면 가장 흔한 ao/ 를 붙인다.
+    prefix = "" if path.startswith(("ao/", "ad/", "as/", "at/")) else "ao/"
+    url = f"https://apis.data.go.kr/1230000/{prefix}{path}"
     key = get_api_key("data_go_kr")
     base = {"serviceKey": key, "type": "json", **params}
 
@@ -352,6 +355,39 @@ async def fetch_g2b_contract(days: int = 7) -> list[dict]:
     return out
 
 
+# ─────────────────────────── 나라장터 낙찰정보 ───────────────────────────
+async def fetch_g2b_award(days: int = 14) -> list[dict]:
+    """낙찰은 개방표준(getDataSetOpnStdScsbidInfo)이 아니라 별도 서비스인
+    ScsbidInfoService 를 쓴다. 개방표준 쪽은 필수 파라미터명이 확인되지 않았다."""
+    end = date.today()
+    start = end - timedelta(days=max(days, 1))
+    rows = await _g2b(
+        "as/ScsbidInfoService/getScsbidListSttusThng",
+        {"inqryDiv": "1",
+         "inqryBgnDt": start.strftime("%Y%m%d") + "0000",
+         "inqryEndDt": end.strftime("%Y%m%d") + "2359"},
+    )
+    out = []
+    for r in rows:
+        out.append(
+            normalize(
+                "g2b_award",
+                title=r.get("bidNtceNm"),
+                summary="",
+                target="",
+                category="",
+                org=r.get("dminsttNm"),
+                apply_start=_ymd(r.get("rlOpengDt")),
+                apply_end="",
+                url="",
+                extra={"낙찰업체": r.get("bidwinnrNm"), "낙찰금액": r.get("sucsfbidAmt"),
+                       "낙찰률": r.get("sucsfbidRate"), "참여업체수": r.get("prtcptCnum"),
+                       "개찰일시": r.get("rlOpengDt"), "공고번호": r.get("bidNtceNo")},
+            )
+        )
+    return out
+
+
 FETCHERS = {
     "bizinfo": fetch_bizinfo,
     "kstartup": fetch_kstartup,
@@ -360,5 +396,6 @@ FETCHERS = {
     "g2b_order_plan": fetch_g2b_order_plan,
     "g2b_prestandard": fetch_g2b_prestandard,
     "g2b_bid": fetch_g2b_bid,
+    "g2b_award": fetch_g2b_award,
     "g2b_contract": fetch_g2b_contract,
 }
