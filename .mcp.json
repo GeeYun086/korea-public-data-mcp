@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "korea-public-data": {
-      "command": "C:/Users/goorm/Desktop/public-data-mcp/.venv/Scripts/korea-public-data-mcp.exe",
-      "args": [],
-      "env": {}
-    }
-  }
-}
