@@ -20,8 +20,8 @@
 | --- | --- | --- |
 | **금융** | ✅ 완료 | 4곳 |
 | **정부사업 · 조달** | ✅ 완료 | 9곳 |
-| 학술 / 연구 / 교육 | ⬜ 예정 | — |
-| 지식재산권 / 특허 | ⬜ 예정 | — |
+| **학술 / 연구 / 교육** | 🟡 진행 중 | 나이스 1곳 (KCI·KISTI·NTIS·서울연구원 발급 대기) |
+| **지식재산권 / 특허** | ✅ 완료 | KIPRIS 1곳 |
 | 법률 / 행정 / 안전 | ⬜ 예정 | — |
 
 ### 금융
@@ -78,6 +78,18 @@
 | 창업진흥원 창업공간플랫폼 | 창업 보육센터·공간 정보 | [15125365](https://www.data.go.kr/data/15125365/openapi.do) |
 | 한국연구재단 NRIC | 연구인력 채용정보 | [15088749](https://www.data.go.kr/data/15088749/openapi.do) |
 
+### 학술 / 연구 / 교육
+
+| 소스 | 제공 데이터 | 출처 |
+| --- | --- | --- |
+| 교육부 나이스 | 전국 초·중·고·특수학교 기본정보. 학교명·학교급·교육청·지역·설립구분·주소·전화·홈페이지 | [open.neis.go.kr](https://open.neis.go.kr) |
+
+### 지식재산권 / 특허
+
+| 소스 | 제공 데이터 | 출처 |
+| --- | --- | --- |
+| KIPRIS Plus | 국내 특허·실용신안. 발명명칭·출원번호·출원인·등록상태·IPC 분류·초록 | [plus.kipris.or.kr](https://plus.kipris.or.kr) |
+
 ---
 
 ## 인증키 현황
@@ -92,6 +104,8 @@
 | 공공데이터포털 | `DATA_GO_KR_API_KEY` | ✅ | 서비스 상세페이지에서 활용신청 |
 | 한국수출입은행 | `KOREAEXIM_EXCHANGE_API_KEY`<br>`KOREAEXIM_LOAN_API_KEY`<br>`KOREAEXIM_INTERNATIONAL_API_KEY` | ✅ | 상품별로 각각 신청, 즉시 |
 | 기업마당 | `BIZINFO_API_KEY` | ✅ | 신청서 작성 → 이메일 수신, 1일 |
+| 교육부 나이스 | `NEIS_API_KEY` | ✅ | 로그인 → 인증키 신청, 즉시. **키 없으면 5건만 조회됨** |
+| KIPRIS Plus | `KIPRIS_API_KEY` | ✅ | 회원가입 → 상품 신청, 즉시. **월 1,000회 무료** |
 | NTIS | `NTIS_API_KEY` | ⏸ 예정 | 소속기관 등록 + 서버 IP 필요, 승인 수일 |
 | AI Hub | `AIHUB_API_KEY` | ⏸ 예정 | 회원가입 → 버튼 클릭, 즉시 |
 
@@ -144,7 +158,7 @@ docker run -i --rm --env-file .env korea-public-data-mcp
 
 ---
 
-## 제공 도구 (14개)
+## 제공 도구 (16개)
 
 ### 정부사업 · 조달
 
@@ -183,6 +197,15 @@ docker run -i --rm --env-file .env korea-public-data-mcp
 | `koreaexim_get_exchange_rates` | 환율 (매매기준율·전신환매매율) |
 | `koreaexim_get_loan_rates` | 대출금리 |
 | `koreaexim_get_international_rates` | 국제금리 (SOFR·ESTR 등) |
+
+### 교육 · 지식재산권
+
+기관마다 담는 자료가 완전히 달라 개별 도구로 제공합니다.
+
+| 도구 | 설명 |
+| --- | --- |
+| `neis_search_schools` | 전국 학교를 지역·학교급·학교명으로 조회합니다. 지역을 지정하지 않으면 응답이 커지므로 좁혀서 부르는 것을 권합니다 |
+| `ip_search` | 국내 특허·실용신안을 키워드로 검색합니다. 호출 한도가 월 1,000회로 빠듯합니다 |
 
 ### 공통
 

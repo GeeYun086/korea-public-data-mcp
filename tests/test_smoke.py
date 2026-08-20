@@ -22,6 +22,8 @@ def test_server_imports_and_registers_tools():
     assert "koreaexim_get_exchange_rates" in names
     assert "gov_search" in names
     assert "gov_list_sources" in names
+    assert "neis_search_schools" in names
+    assert "ip_search" in names
 
 
 @pytest.mark.parametrize(
@@ -40,6 +42,8 @@ def test_server_imports_and_registers_tools():
         ),
         ("koreaexim_get_exchange_rates", {}),
         ("gov_search", {"query": "AI", "sources": ["기업마당"]}),
+        ("neis_search_schools", {"region": "서울"}),
+        ("ip_search", {"query": "인공지능"}),
     ],
 )
 def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
@@ -52,6 +56,8 @@ def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
         "KOREAEXIM_LOAN_API_KEY",
         "KOREAEXIM_INTERNATIONAL_API_KEY",
         "BIZINFO_API_KEY",
+        "NEIS_API_KEY",
+        "KIPRIS_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
@@ -74,3 +80,15 @@ def test_registry_resolves_sources_by_agency_name():
     assert len(registry.resolve(None, domain="gov_program")) == 3
     assert len(registry.resolve(None, domain="procurement")) == 6
     assert registry.resolve(["존재하지않는기관"]) == []
+
+
+def test_neis_region_name_resolves_to_office_code():
+    """'서울', '서울특별시' 처럼 사용자가 부르는 표기를 교육청 코드로 바꿀 수 있어야 한다."""
+    from korea_public_data_mcp.clients import neis
+
+    assert neis.resolve_office("서울") == "B10"
+    assert neis.resolve_office("서울특별시") == "B10"
+    assert neis.resolve_office("B10") == "B10"          # 코드를 그대로 넘겨도 통과
+    assert neis.resolve_office("경기") == "J10"
+    assert neis.resolve_office("") is None
+    assert neis.resolve_office("존재하지않는지역") is None

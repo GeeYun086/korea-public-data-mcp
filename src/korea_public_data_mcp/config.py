@@ -120,6 +120,19 @@ API_KEYS = {
         issue_url="https://www.bizinfo.go.kr/apiDetail.do?id=bizinfoApi (신청 폼 작성 → 이메일로 인증키 수신)",
         display_name="기업마당 Bizinfo",
     ),
+    # 나이스는 인증키 없이도 호출되지만 5건만 돌려준다. 키를 넣어야 1,000건까지 받는다.
+    "neis": ApiKeySpec(
+        env_var="NEIS_API_KEY",
+        issue_url="https://open.neis.go.kr (로그인 → 인증키 신청, 즉시 발급)",
+        display_name="교육부 나이스 교육정보 개방 포털",
+    ),
+    # KIPRIS는 인증 파라미터가 ServiceKey(대문자 S)다. 공식 문서 일부에 accessKey 로
+    # 적혀 있으나 그 이름으로는 INVALID_REQUEST_PARAMETER_ERROR 가 떨어진다(실호출 확인).
+    "kipris": ApiKeySpec(
+        env_var="KIPRIS_API_KEY",
+        issue_url="https://plus.kipris.or.kr (회원가입 → 상품 신청 → 서비스키 발급). 월 1,000회 무료",
+        display_name="KIPRIS Plus 특허정보",
+    ),
     # AI Hub 키는 사업공고용이 아니라 aihubshell 데이터셋 다운로드/메타데이터 조회용이다.
     "aihub": ApiKeySpec(
         env_var="AIHUB_API_KEY",
