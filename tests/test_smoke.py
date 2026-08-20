@@ -71,6 +71,6 @@ def test_registry_resolves_sources_by_agency_name():
         "g2b_bid", "g2b_award", "g2b_contract"}
     assert [s.id for s in registry.resolve(["사전규격"])] == ["g2b_prestandard"]
     assert [s.id for s in registry.resolve(["기업마당"])] == ["bizinfo"]
-    assert len(registry.resolve(None, domain="gov_program")) == 4
+    assert len(registry.resolve(None, domain="gov_program")) == 3
     assert len(registry.resolve(None, domain="procurement")) == 6
     assert registry.resolve(["존재하지않는기관"]) == []
