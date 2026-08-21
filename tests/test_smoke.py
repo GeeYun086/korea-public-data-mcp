@@ -22,6 +22,10 @@ def test_server_imports_and_registers_tools():
     assert "koreaexim_get_exchange_rates" in names
     assert "gov_search" in names
     assert "gov_list_sources" in names
+    assert "ip_search" in names
+    assert "neis_search_schools" in names
+    assert "ntis_search_projects" in names
+    assert "si_search_reports" in names
 
 
 @pytest.mark.parametrize(
@@ -40,6 +44,9 @@ def test_server_imports_and_registers_tools():
         ),
         ("koreaexim_get_exchange_rates", {}),
         ("gov_search", {"query": "AI", "sources": ["기업마당"]}),
+        ("ip_search", {"query": "인공지능"}),
+        ("ntis_search_projects", {"query": "이차전지"}),
+        ("si_search_reports", {"query": "서울"}),
     ],
 )
 def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
@@ -52,12 +59,24 @@ def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
         "KOREAEXIM_LOAN_API_KEY",
         "KOREAEXIM_INTERNATIONAL_API_KEY",
         "BIZINFO_API_KEY",
+        "KIPRIS_API_KEY",
+        "NTIS_API_KEY",
+        "SEOUL_INSTITUTE_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
     result = asyncio.run(server.mcp.call_tool(tool_name, kwargs))
     # call_tool은 (content_list, is_error) 형태 등 SDK 버전에 따라 다를 수 있으므로
     # 예외 없이 반환되는지만 확인한다.
+    assert result is not None
+
+
+def test_neis_search_schools_works_without_api_key(monkeypatch):
+    """NEIS는 다른 소스와 달리 키가 없어도 에러 대신 5건 제한 결과를 준다."""
+    monkeypatch.delenv("NEIS_API_KEY", raising=False)
+    result = asyncio.run(
+        server.mcp.call_tool("neis_search_schools", {"region": "서울", "school_name": "고등학교"})
+    )
     assert result is not None
 
 
