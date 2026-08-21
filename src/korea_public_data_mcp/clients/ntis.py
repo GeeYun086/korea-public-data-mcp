@@ -49,6 +49,19 @@ async def search_projects(query: str, limit: int = 20, start: int = 1) -> dict:
     except ET.ParseError as e:
         return {"error": f"NTIS 응답 파싱 실패: {e}. raw={resp.text[:300]}"}
 
+    # NTIS는 인증키 오류·IP 미등록 같은 실패도 HTTP 200 + 정상 XML(<error>메시지</error>)로 돌려준다.
+    # 그대로 아래 파싱을 타면 HIT/TOTALHITS 가 없어 '검색 결과 0건'으로 위장되므로 여기서 먼저 걸러낸다.
+    # (Element 는 자식이 없으면 falsy 라서 `find(..) or find(..)` 로 묶으면 안 된다 — is not None 으로 판정.)
+    err_node = root if root.tag.lower() == "error" else None
+    if err_node is None:
+        for tag in ("error", "ERROR", "Error"):
+            found = root.find(f".//{tag}")
+            if found is not None:
+                err_node = found
+                break
+    if err_node is not None:
+        return {"error": f"NTIS: {(err_node.text or '').strip() or '알 수 없는 오류'}"}
+
     hits = root.findall(".//HIT") or root.findall(".//hit")
     total = _text(root, ".//TOTALHITS", ".//totalHits") or str(len(hits))
 
