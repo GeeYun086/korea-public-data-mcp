@@ -133,6 +133,13 @@ API_KEYS = {
         issue_url="https://www.si.re.kr/openapi (신청 폼 제출 → 승인 후 이메일로 인증키·연동가이드 수신)",
         display_name="서울연구원",
     ),
+    # 사람인은 인증 파라미터명이 access-key 다 (하이픈 포함, 쿼리스트링). 사업자등록증 등
+    # 서류 요구 없이 이메일인증 + 이용신청서 작성만으로 발급된다.
+    "saramin": ApiKeySpec(
+        env_var="SARAMIN_API_KEY",
+        issue_url="https://oapi.saramin.co.kr/join (이메일인증 → 이용신청서 작성 → 승인 후 앱등록 → access-key 확인)",
+        display_name="사람인 Saramin",
+    ),
     # AI Hub 키는 사업공고용이 아니라 aihubshell 데이터셋 다운로드/메타데이터 조회용이다.
     "aihub": ApiKeySpec(
         env_var="AIHUB_API_KEY",

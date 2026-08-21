@@ -26,6 +26,9 @@ def test_server_imports_and_registers_tools():
     assert "neis_search_schools" in names
     assert "ntis_search_projects" in names
     assert "si_search_reports" in names
+    assert "nps_search_employee_count" in names
+    assert "nps_get_employee_trend" in names
+    assert "saramin_search_jobs" in names
 
 
 @pytest.mark.parametrize(
@@ -47,6 +50,9 @@ def test_server_imports_and_registers_tools():
         ("ip_search", {"query": "인공지능"}),
         ("ntis_search_projects", {"query": "이차전지"}),
         ("si_search_reports", {"query": "서울"}),
+        ("nps_search_employee_count", {"company_name": "삼성전자"}),
+        ("nps_get_employee_trend", {"seq": "1"}),
+        ("saramin_search_jobs", {"keywords": "백엔드"}),
     ],
 )
 def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
@@ -62,6 +68,7 @@ def test_tools_fail_gracefully_without_api_key(tool_name, kwargs, monkeypatch):
         "KIPRIS_API_KEY",
         "NTIS_API_KEY",
         "SEOUL_INSTITUTE_API_KEY",
+        "SARAMIN_API_KEY",
     ]:
         monkeypatch.delenv(var, raising=False)
 
