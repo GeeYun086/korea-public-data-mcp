@@ -1,4 +1,4 @@
-# korea-public-data-mcp
+# korea-public-data
 
 대한민국 공공데이터를 Claude가 **직접 조회해서 답하게** 해주는 MCP 서버입니다.
 
@@ -28,10 +28,8 @@
 | **정부사업 · 조달** | ✅ 완료 | 10곳 |
 | **지식재산권 / 특허** | ✅ 완료 | KIPRIS Plus |
 | **교육** | ✅ 완료 | NEIS |
-| 학술 / 연구 | 🔶 일부 | NTIS(완료) · 서울연구원(완료) · KISTI(승인 대기) · KCI(제외) |
+| 학술 / 연구 | 🔶 일부 | NTIS(완료) · 서울연구원(완료) · KISTI(승인 대기) |
 | **인력 / 채용** | ✅ 완료 | 국민연금 · 사람인 · 원티드 · 고용24 KDT |
-| 법률 / 행정 / 안전 | ⛔ 제외 | — |
-| 공공통합포털 | ⛔ 제외 | — |
 
 ### 금융
 
@@ -42,7 +40,7 @@
 | 통계청 KOSIS | 국가통계 13만종 | [kosis.kr](https://kosis.kr/openapi) |
 | 한국수출입은행 | 현재환율, 대출금리, 국제금리 | [koreaexim.go.kr](https://www.koreaexim.go.kr/ir/HPHKIR019M01) |
 
-### 정부사업 — 지원사업 4곳
+### 정부사업 — 지원사업 4가지
 
 | 소스 | 제공 데이터 | 출처 |
 | --- | --- | --- |
@@ -51,9 +49,9 @@
 | 보조금24 (행정안전부) | 정부·지자체 공공서비스(혜택) 목록 | [data.go.kr 15113968](https://www.data.go.kr/data/15113968/openapi.do) |
 | 과기정통부 사업공고 | R&D·국제협력·인프라 사업 공모 공고 | [data.go.kr 15074634](https://www.data.go.kr/data/15074634/openapi.do) |
 
-### 정부사업 — 조달 6단계 (조달청 나라장터)
+### 정부사업 — 조달 6가지 (조달청 나라장터)
 
-한 사업이 아래 순서로 흘러갑니다. **앞 단계일수록 먼저 알 수 있습니다.**
+조달은 한 사업이 아래 6단계의 순서로 흘러갑니다.
 
 ```
 발주계획  →  조달요청  →  사전규격  →  입찰공고  →  낙찰  →  계약
@@ -107,7 +105,6 @@
 | NTIS (과기정통부) | 국가 R&D 과제 키워드 검색 (과제명·연구책임자·주관기관·연구기간·연구비) | ✅ 완료 (실호출로 확인) | [ntis.go.kr](https://www.ntis.go.kr) |
 | 서울연구원 | 연구보고서·정책리포트 등 11개 카테고리의 메타데이터(제목·날짜·저자·원문링크) | ✅ 완료 (실호출로 확인) | [si.re.kr/openapi](https://www.si.re.kr/openapi) |
 | KISTI | 국가R&D 연구보고서 검색 | ⏸ 활용신청 승인 대기 (승인되면 `data_go_kr_generic_get`으로 즉시 호출 가능) | [15102622](https://www.data.go.kr/data/15102622/openapi.do) |
-| KCI 한국학술지인용색인 | 학술논문 검색 | ⛔ 제외 (활용신청에 사업자등록증 등 서류 요구, 개인 신청 범위를 넘어감) | — |
 
 ### 인력 / 채용
 
@@ -134,7 +131,7 @@
 | 한국수출입은행 | `KOREAEXIM_EXCHANGE_API_KEY`<br>`KOREAEXIM_LOAN_API_KEY`<br>`KOREAEXIM_INTERNATIONAL_API_KEY` | ✅ | 상품별로 각각 신청, 즉시 |
 | 기업마당 | `BIZINFO_API_KEY` | ✅ | 신청서 작성 → 이메일 수신, 1일 |
 | KIPRIS Plus | `KIPRIS_API_KEY` | ✅ | 회원가입 → Open API 인증키 신청, 즉시 |
-| NEIS | `NEIS_API_KEY` | ✅ (선택) | 회원가입 → 인증키 신청, 즉시. 없어도 동작(5건 제한) |
+| NEIS | `NEIS_API_KEY` | ✅ | 회원가입 → 인증키 신청, 즉시. 없어도 동작(5건 제한) |
 | NTIS | `NTIS_API_KEY` | ✅ | 소속기관 등록 + 서버 IP 필요, 승인 수일 |
 | 서울연구원 | `SEOUL_INSTITUTE_API_KEY` | ✅ | 신청 폼 제출 → 승인 후 이메일로 키·연동가이드 수신 |
 | 국민연금공단 | `DATA_GO_KR_API_KEY` (공용) | ⚠️ 활용신청 필요 | 서비스 상세페이지([3046071](https://www.data.go.kr/data/3046071/openapi.do))에서 별도 활용신청 — 키는 이미 있어도 이 신청을 안 하면 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR` |
