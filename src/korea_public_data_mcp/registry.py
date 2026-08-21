@@ -42,15 +42,6 @@ SOURCES: dict[str, Source] = {
         aliases=("K-Startup", "케이스타트업", "창업진흥원", "창업지원"),
         note="창업업력(예비창업자/1년미만/…)으로 대상을 좁힐 수 있다.",
     ),
-    "bojo24": Source(
-        id="bojo24",
-        name="보조금24",
-        domain="gov_program",
-        api_key="data_go_kr",
-        description="정부·지자체가 제공하는 공공서비스(혜택) 목록. 개인 대상 복지·혜택이 대부분이고 소상공인 항목이 일부 포함",
-        aliases=("보조금24", "보조금", "공공서비스", "행정안전부", "정부혜택"),
-        note="사용자구분 기준 개인 82%. 기업 지원사업을 찾을 때는 기대치를 낮게 잡을 것.",
-    ),
     "msit": Source(
         id="msit",
         name="과기정통부 사업공고",
