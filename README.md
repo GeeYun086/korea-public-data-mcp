@@ -118,7 +118,7 @@
 | 한국수출입은행 | `KOREAEXIM_EXCHANGE_API_KEY`<br>`KOREAEXIM_LOAN_API_KEY`<br>`KOREAEXIM_INTERNATIONAL_API_KEY` | ✅ | 상품별로 각각 신청, 즉시 |
 | 기업마당 | `BIZINFO_API_KEY` | ✅ | 신청서 작성 → 이메일 수신, 1일 |
 | KIPRIS Plus | `KIPRIS_API_KEY` | ✅ | 회원가입 → Open API 인증키 신청, 즉시 |
-| NEIS | `NEIS_API_KEY` | ✅ (선택) | 회원가입 → 인증키 신청, 즉시. 없어도 동작(5건 제한) |
+| NEIS | `NEIS_API_KEY` | ✅ | 회원가입 → 인증키 신청, 즉시. 없어도 동작(5건 제한) |
 | NTIS | `NTIS_API_KEY` | ✅ | 소속기관 등록 + 서버 IP 필요, 승인 수일 |
 | 서울연구원 | `SEOUL_INSTITUTE_API_KEY` | ✅ | 신청 폼 제출 → 승인 후 이메일로 키·연동가이드 수신 |
 
