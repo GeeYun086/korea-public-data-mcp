@@ -1,4 +1,4 @@
-# korea-public-data-mcp
+# korea-public-data
 
 대한민국 공공데이터를 Claude가 **직접 조회해서 답하게** 해주는 MCP 서버입니다.
 
