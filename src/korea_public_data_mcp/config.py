@@ -133,6 +133,37 @@ API_KEYS = {
         issue_url="https://www.si.re.kr/openapi (신청 폼 제출 → 승인 후 이메일로 인증키·연동가이드 수신)",
         display_name="서울연구원",
     ),
+    # 사람인은 인증 파라미터명이 access-key 다 (하이픈 포함, 쿼리스트링). 사업자등록증 등
+    # 서류 요구 없이 이메일인증 + 이용신청서 작성만으로 발급된다.
+    "saramin": ApiKeySpec(
+        env_var="SARAMIN_API_KEY",
+        issue_url="https://oapi.saramin.co.kr/join (이메일인증 → 이용신청서 작성 → 승인 후 앱등록 → access-key 확인)",
+        display_name="사람인 Saramin",
+    ),
+    # 원티드는 인증이 쿼리파라미터가 아니라 헤더 3종(wanted-client-id, wanted-client-secret,
+    # Authorization)이다. 신청 폼(/apply/)에 사업자등록번호가 필수라 개인 신청은 안 되고
+    # 회사/팀 명의로 신청해야 한다.
+    "wanted_client_id": ApiKeySpec(
+        env_var="WANTED_CLIENT_ID",
+        issue_url="https://openapi.wanted.jobs/apply/ (사업자등록번호 필수 → 3영업일 내 이메일로 발급)",
+        display_name="원티드 (client-id)",
+    ),
+    "wanted_client_secret": ApiKeySpec(
+        env_var="WANTED_CLIENT_SECRET",
+        issue_url="https://openapi.wanted.jobs/apply/ (사업자등록번호 필수 → 3영업일 내 이메일로 발급)",
+        display_name="원티드 (client-secret)",
+    ),
+    "wanted_authorization": ApiKeySpec(
+        env_var="WANTED_AUTHORIZATION",
+        issue_url="https://openapi.wanted.jobs/apply/ (발급 메일에 Authorization 헤더값이 별도로 안내됨)",
+        display_name="원티드 (Authorization)",
+    ),
+    # 고용24(work24.go.kr) — 국민내일배움카드/KDT 훈련과정. 신청 시 사업자등록번호 필수.
+    "work24": ApiKeySpec(
+        env_var="WORK24_API_KEY",
+        issue_url="https://www.work24.go.kr (회원가입 → Open API 서비스 신청 → authKey 발급)",
+        display_name="고용24 (work24)",
+    ),
     # AI Hub 키는 사업공고용이 아니라 aihubshell 데이터셋 다운로드/메타데이터 조회용이다.
     "aihub": ApiKeySpec(
         env_var="AIHUB_API_KEY",
