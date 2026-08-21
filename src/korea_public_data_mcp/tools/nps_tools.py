@@ -18,7 +18,10 @@ def register(mcp: MCPServer) -> None:
         limit: 최대 반환 사업장 수 (기본 5).
 
         가입자수는 국민연금 가입자 기준이라 실제 임직원수와 정확히 일치하지 않을 수 있다.
-        추이(입퇴사 흐름)를 보려면 이 결과의 사업장코드로 nps_get_employee_trend 를 호출한다.
+        큰 그룹사명을 넣으면 "OO건설/일용/[삼성전자] ..." 처럼 그 회사 현장에서 일하는
+        협력업체명까지 잡힐 수 있다 — 사업장명이 회사명과 정확히 일치하는 항목을 우선
+        확인할 것. 추이(입퇴사 흐름)를 보려면 이 결과의 사업장코드로
+        nps_get_employee_trend 를 호출한다.
         """
         key = f"nps:count:{company_name}:{limit}"
 

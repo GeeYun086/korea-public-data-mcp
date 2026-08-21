@@ -23,11 +23,13 @@ async def _call(operation: str, params: dict) -> dict:
         f"{_BASE}/{operation}",
         params={"serviceKey": get_api_key("data_go_kr"), "dataType": "json", **params},
     )
-    header = data.get("header") or {}
+    # 응답이 {"response": {"header":..., "body":...}} 한 겹 더 감싸져 있다 (실호출로 확인).
+    envelope = data.get("response") or data
+    header = envelope.get("header") or {}
     code = header.get("resultCode")
     if code not in ("00", "0", None):
         return {"error": header.get("resultMsg") or f"조회 실패 (코드 {code})"}
-    body = data.get("body") or {}
+    body = envelope.get("body") or {}
     items = (body.get("items") or {}).get("item") or []
     if isinstance(items, dict):
         items = [items]
@@ -35,13 +37,27 @@ async def _call(operation: str, params: dict) -> dict:
 
 
 async def search_workplace(name: str, limit: int = 10) -> list[dict]:
-    """사업장명으로 검색해 seq(식별번호)를 얻는다. 상세조회는 이 seq가 있어야 가능하다."""
+    """사업장명으로 검색해 seq(식별번호)를 얻는다. 상세조회는 이 seq가 있어야 가능하다.
+
+    부분일치라 대기업명을 넣으면 "OO건설/일용/[삼성전자] ..." 처럼 그 회사 현장에서
+    일하는 협력업체명까지 잔뜩 잡힌다. 그래서 API가 주는 순서를 그대로 믿지 않고,
+    더 넉넉히 받아온 뒤 회사명과 정확히 일치하거나 이름이 짧은(=협력업체 수식어가
+    안 붙은) 사업장을 앞으로 정렬해서 실제 그 회사 본사/사업장을 찾기 쉽게 한다.
+    """
+    fetch_n = max(limit, min(100, limit * 5))
     result = await _call(
         "getBassInfoSearchV2",
-        {"wkplNm": name, "numOfRows": max(1, min(limit, 100)), "pageNo": 1},
+        {"wkplNm": name, "numOfRows": fetch_n, "pageNo": 1},
     )
     if "error" in result:
         return []
+
+    q = name.strip()
+    items = result.get("items", [])
+    items.sort(key=lambda it: (
+        (it.get("wkplNm") or "").strip() != q,
+        len(it.get("wkplNm") or ""),
+    ))
     return [
         {
             "사업장명": it.get("wkplNm"),
@@ -52,7 +68,7 @@ async def search_workplace(name: str, limit: int = 10) -> list[dict]:
             "사업자등록번호": it.get("bzowrRgstNo"),
             "자료기준월": it.get("dataCrtYm"),
         }
-        for it in result.get("items", [])
+        for it in items[:limit]
     ]
 
 
