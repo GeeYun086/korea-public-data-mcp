@@ -128,36 +128,6 @@ async def fetch_kstartup(only_open: bool = True) -> list[dict]:
     return out
 
 
-# ─────────────────────────────── 보조금24 ───────────────────────────────
-async def fetch_bojo24(user_type: str | None = None) -> list[dict]:
-    params: dict = {"page": 1, "perPage": _FETCH_LIMIT}
-    if user_type:
-        params["cond[사용자구분::EQ]"] = user_type
-    data = await get_json(
-        "data_go_kr",
-        "https://api.odcloud.kr/api/gov24/v3/serviceList",
-        params={"serviceKey": get_api_key("data_go_kr"), **params},
-    )
-    out = []
-    for r in data.get("data") or []:
-        out.append(
-            normalize(
-                "bojo24",
-                title=r.get("서비스명"),
-                summary=r.get("서비스목적요약"),
-                target=" / ".join(x for x in (r.get("사용자구분"), r.get("지원대상")) if x),
-                category=r.get("서비스분야"),
-                org=r.get("소관기관명"),
-                apply_start="",
-                apply_end="",
-                url=r.get("상세조회URL"),
-                extra={"신청기한": r.get("신청기한"), "신청방법": r.get("신청방법"),
-                       "지원유형": r.get("지원유형"), "접수기관": r.get("접수기관")},
-            )
-        )
-    return out
-
-
 # ─────────────────────────── 과기정통부 사업공고 ───────────────────────────
 async def fetch_msit(pages: int = 5) -> list[dict]:
     """이 API는 numOfRows 를 무시하고 페이지당 10건만 준다. 응답도 XML 뿐이다."""
@@ -422,7 +392,6 @@ async def fetch_g2b_award(days: int = 14) -> list[dict]:
 FETCHERS = {
     "bizinfo": fetch_bizinfo,
     "kstartup": fetch_kstartup,
-    "bojo24": fetch_bojo24,
     "msit": fetch_msit,
     "g2b_order_plan": fetch_g2b_order_plan,
     "g2b_request": fetch_g2b_request,
