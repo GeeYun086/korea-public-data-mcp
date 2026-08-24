@@ -31,7 +31,10 @@ async def _get(path: str, params: dict) -> dict:
         resp = await client.get(f"{_BASE}{path}", params=params, headers=_headers())
     if resp.status_code >= 400:
         return {"error": f"원티드 HTTP {resp.status_code}: {resp.text[:200]}"}
-    return resp.json()
+    try:
+        return resp.json()
+    except ValueError:
+        return {"error": f"원티드 응답 파싱 실패(JSON 아님): {resp.text[:300]}"}
 
 
 def _slim_company(c: dict) -> dict:

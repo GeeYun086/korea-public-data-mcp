@@ -1,4 +1,9 @@
-"""원티드(Wanted) 채용정보 MCP 도구 등록."""
+"""원티드(Wanted) 채용정보 MCP 도구 등록.
+
+인증키 발급에 사업자등록번호가 필요해(퇴사 시점 기준 미발급) 실제 키로 호출 검증을
+못 했다. 그래서 MissingApiKeyError 외의 예외도 한 번 더 감싸서, 응답 구조가 예상과
+달라도 크래시 대신 안내 메시지가 담긴 dict를 돌려주게 했다.
+"""
 from __future__ import annotations
 
 from mcp.server.mcpserver import MCPServer
@@ -22,6 +27,8 @@ def register(mcp: MCPServer) -> None:
             return await cached_call(key, lambda: wanted_client.search_company(query, limit))
         except MissingApiKeyError as e:
             return {"error": str(e)}
+        except Exception as e:  # noqa: BLE001 - 실호출로 검증되지 않은 소스라 방어적으로 감싼다.
+            return {"error": f"원티드 호출 중 예기치 못한 오류: {e}"}
 
     @mcp.tool()
     async def wanted_get_company_jobs(company_id: str, limit: int = 20) -> dict:
@@ -33,6 +40,8 @@ def register(mcp: MCPServer) -> None:
             return await cached_call(key, lambda: wanted_client.get_company_jobs(company_id, limit))
         except MissingApiKeyError as e:
             return {"error": str(e)}
+        except Exception as e:  # noqa: BLE001 - 실호출로 검증되지 않은 소스라 방어적으로 감싼다.
+            return {"error": f"원티드 호출 중 예기치 못한 오류: {e}"}
 
     @mcp.tool()
     async def wanted_search_positions(query: str, limit: int = 20) -> dict:
@@ -46,3 +55,5 @@ def register(mcp: MCPServer) -> None:
             return await cached_call(key, lambda: wanted_client.search_positions(query, limit))
         except MissingApiKeyError as e:
             return {"error": str(e)}
+        except Exception as e:  # noqa: BLE001 - 실호출로 검증되지 않은 소스라 방어적으로 감싼다.
+            return {"error": f"원티드 호출 중 예기치 못한 오류: {e}"}
