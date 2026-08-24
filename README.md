@@ -153,6 +153,36 @@
 
 ## 설치 및 실행
 
+이 서버는 **stdio(표준입출력)로 통신**합니다. 어딘가에 띄워두고 여러 명이 접속하는 서버가
+아니라, Claude Desktop/Code가 이 프로그램을 **각자의 컴퓨터에서 직접 실행**해서 대화하는
+방식입니다. 그래서 쓰려는 사람마다 아래 두 단계(① 실행 환경 준비 → ② Claude에 등록)를
+각자 자기 컴퓨터에서 진행해야 하고, `.env`의 키도 각자 자기 것을 넣어야 합니다.
+
+```
+0. 코드 받기 (git clone)
+        ↓
+① 실행 환경 준비 (venv 또는 Docker 중 택1)
+        ↓ (실행 명령 하나가 나옴)
+② 그 실행 명령을 Claude Desktop/Code에 등록
+        ↓
+   도구 사용 가능
+```
+
+### 0. 코드 받기
+
+아직 이 저장소가 없는 컴퓨터라면 먼저 clone합니다 (git이 없다면 [git-scm.com](https://git-scm.com/downloads)에서 먼저 설치).
+
+```bash
+git clone https://github.com/GeeYun086/korea-public-data-mcp.git
+cd korea-public-data-mcp
+```
+
+아래 ①·② 의 `C:\경로\public-data-mcp` 는 이 clone된 폴더의 실제 경로로 바꿔서 씁니다.
+
+### ① 실행 환경 준비
+
+**venv (Python을 직접 설치하는 방식)**
+
 ```bash
 python -m venv .venv
 .venv/Scripts/pip install -e .
@@ -160,11 +190,31 @@ cp .env.example .env      # 발급받은 키 입력
 ```
 
 키가 하나도 없어도 서버는 정상적으로 뜹니다. 키가 필요한 도구를 호출할 때만 발급 안내가 나옵니다.
+이 방식의 실행 명령은 `C:\경로\public-data-mcp\.venv\Scripts\python.exe -m korea_public_data_mcp.server` 입니다.
 
-### Claude Desktop
+**Docker (Python 설치가 필요 없는 방식)**
+
+```bash
+docker build -t korea-public-data-mcp .
+```
+
+stdio 통신이라 포트는 열지 않으며, 인증키는 이미지에 넣지 않고 **실행 시점에** `.env`로 주입합니다.
+이 방식의 실행 명령은 `docker run -i --rm --env-file C:\경로\public-data-mcp\.env korea-public-data-mcp` 입니다
+(Claude가 어느 폴더에서 이 명령을 실행할지 알 수 없으므로 `--env-file`은 상대경로 `.env`가 아니라
+반드시 절대경로로 지정하세요).
+
+venv와 Docker는 **둘 중 하나만 고르면** 됩니다. 아래 ②에서 등록할 때 어느 쪽을 골랐는지에 따라
+`command`/`args`만 바뀌고, 나머지는 동일합니다.
+
+### ② Claude Desktop 또는 Claude Code에 등록
+
+①에서 나온 실행 명령을 아래처럼 등록합니다. **venv를 골랐으면 A, Docker를 골랐으면 B**를 씁니다.
+
+#### Claude Desktop
 
 `%APPDATA%\Claude\claude_desktop_config.json` 의 `mcpServers` 에 추가한 뒤 앱을 재시작합니다.
 
+A. venv로 준비했다면:
 ```json
 "korea-public-data": {
   "command": "C:\\경로\\public-data-mcp\\.venv\\Scripts\\python.exe",
@@ -172,21 +222,26 @@ cp .env.example .env      # 발급받은 키 입력
 }
 ```
 
-### Claude Code
+B. Docker로 준비했다면:
+```json
+"korea-public-data": {
+  "command": "docker",
+  "args": ["run", "-i", "--rm", "--env-file", "C:\\경로\\public-data-mcp\\.env", "korea-public-data-mcp"]
+}
+```
 
-프로젝트 루트에 `.mcp.json` 을 만들거나 아래로 등록합니다.
+#### Claude Code
 
+프로젝트 루트에 `.mcp.json` 을 만들거나 아래 명령으로 등록합니다.
+
+A. venv로 준비했다면:
 ```bash
 claude mcp add korea-public-data -- C:\경로\public-data-mcp\.venv\Scripts\python.exe -m korea_public_data_mcp.server
 ```
 
-### Docker
-
-stdio 통신이라 포트를 열지 않습니다. 인증키는 반드시 실행 시점에 주입하세요.
-
+B. Docker로 준비했다면:
 ```bash
-docker build -t korea-public-data-mcp .
-docker run -i --rm --env-file .env korea-public-data-mcp
+claude mcp add korea-public-data -- docker run -i --rm --env-file C:\경로\public-data-mcp\.env korea-public-data-mcp
 ```
 
 ---
