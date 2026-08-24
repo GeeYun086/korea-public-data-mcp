@@ -1,4 +1,10 @@
-"""고용24(work24.go.kr) K-디지털 트레이닝(KDT) MCP 도구 등록."""
+"""고용24(work24.go.kr) K-디지털 트레이닝(KDT) MCP 도구 등록.
+
+인증키 발급에 사업자등록번호가 필요해(퇴사 시점 기준 미발급) 실제 키로 호출 검증을
+못 했다. 그래서 MissingApiKeyError 외의 예외도 한 번 더 감싸서, 응답 구조가 예상과
+달라도(clients/work24.py 상단 주석의 _ROW_KEYS 불확실성 참고) 크래시 대신 안내
+메시지가 담긴 dict를 돌려주게 했다.
+"""
 from __future__ import annotations
 
 from mcp.server.mcpserver import MCPServer
@@ -30,3 +36,5 @@ def register(mcp: MCPServer) -> None:
             )
         except MissingApiKeyError as e:
             return {"error": str(e)}
+        except Exception as e:  # noqa: BLE001 - 실호출로 검증되지 않은 소스라 방어적으로 감싼다.
+            return {"error": f"고용24 호출 중 예기치 못한 오류: {e}"}

@@ -28,8 +28,8 @@
 | **정부사업 · 조달** | ✅ 완료 | 9곳 |
 | **지식재산권 / 특허** | ✅ 완료 | KIPRIS Plus |
 | **교육** | ✅ 완료 | NEIS |
-| 학술 / 연구 | 🔶 일부 | NTIS(완료) · 서울연구원(완료) · KISTI(승인 대기) |
-| **인력 / 채용** | ✅ 완료 | 국민연금 · 사람인 · 원티드 · 고용24 KDT |
+| 학술 / 연구 | 🔶 일부 | NTIS(완료) · 서울연구원(완료) · KCI(코드 완료, 키 발급 보류) · KISTI(승인 대기) |
+| **인력 / 채용** | ✅ 완료 | 국민연금 · 원티드 · 고용24 KDT |
 
 ### 금융
 
@@ -105,6 +105,7 @@
 | --- | --- | --- | --- |
 | NTIS (과기정통부) | 국가 R&D 과제 키워드 검색 (과제명·연구책임자·주관기관·연구기간·연구비) | ✅ 완료 (실호출로 확인) | [ntis.go.kr](https://www.ntis.go.kr) |
 | 서울연구원 | 연구보고서·정책리포트 등 11개 카테고리의 메타데이터(제목·날짜·저자·원문링크) | ✅ 완료 (실호출로 확인) | [si.re.kr/openapi](https://www.si.re.kr/openapi) |
+| KCI (한국연구재단) | 국내 학술논문 제목 검색 (저자·저널명·발행연도·DOI·초록·인용횟수) | 🔶 코드 완료, 키 발급 보류 — 신청 시 **사업자등록증 필요**, 실호출 미검증 (명세 페이지 기준으로 구현) | [kci.go.kr](https://www.kci.go.kr/kciportal/po/openapi/openApiList.kci) |
 | KISTI | 국가R&D 연구보고서 검색 | ⏸ 활용신청 승인 대기 (승인되면 `data_go_kr_generic_get`으로 즉시 호출 가능) | [15102622](https://www.data.go.kr/data/15102622/openapi.do) |
 
 ### 인력 / 채용
@@ -112,10 +113,11 @@
 | 기관 | 제공 데이터 | 상태 | 출처 |
 | --- | --- | --- | --- |
 | 국민연금공단 | 회사명으로 사업장 검색 → 가입자수(재직자수 근사치) 및 신규취득·상실 추이 | ✅ 완료 (Swagger로 스펙 확인) | [data.go.kr 3046071](https://www.data.go.kr/data/3046071/openapi.do) |
-| 사람인 (Saramin) | 채용공고 검색 (회사명·직무·지역·경력·학력 등) | ✅ 완료 (스펙 확인, 서류 요구 없음) | [oapi.saramin.co.kr](https://oapi.saramin.co.kr/introduce) |
 | 원티드 (Wanted) | 회사 검색 → 회사ID로 채용중 포지션 조회, 직무 키워드 검색 | ✅ 완료 (OpenAPI 스펙 확인) — 신청 시 **사업자등록번호 필수**, 팀/회사 명의로 신청 | [openapi.wanted.jobs](https://openapi.wanted.jobs) |
 | HRD-Net / 고용24 (KDT) | 국민내일배움카드·K-디지털 트레이닝(KDT) 훈련과정 검색 | ✅ 완료 (work24.go.kr 자체 엔드포인트 명세 확인) — 신청 시 **사업자등록번호 필수**, 기업회원 전용 서비스 | [work24.go.kr](https://www.work24.go.kr) |
 | 건강보험공단 (사업장 정보) | — | ⛔ 제외 — 실시간 API 없음, 정적 파일데이터만 제공 | — |
+
+> 사람인(Saramin)은 이용신청서 승인이 계속 반려되어 클라이언트/도구 코드를 제거했습니다. 서류 요구가 없는 절차라 재도전 여지는 있고, 승인되면 git 이력에서 코드를 복원해 다시 켤 수 있어 발급 정보는 `.env.example`에 남겨둡니다.
 
 ---
 
@@ -136,10 +138,10 @@
 | NTIS | `NTIS_API_KEY` | ✅ | 소속기관 등록 + 서버 IP 필요, 승인 수일 |
 | 서울연구원 | `SEOUL_INSTITUTE_API_KEY` | ✅ | 신청 폼 제출 → 승인 후 이메일로 키·연동가이드 수신 |
 | 국민연금공단 | `DATA_GO_KR_API_KEY` (공용) | ⚠️ 활용신청 필요 | 서비스 상세페이지([3046071](https://www.data.go.kr/data/3046071/openapi.do))에서 별도 활용신청 — 키는 이미 있어도 이 신청을 안 하면 `SERVICE_KEY_IS_NOT_REGISTERED_ERROR` |
-| 사람인 | `SARAMIN_API_KEY` | ✅ | 이메일인증 → 이용신청서 작성 → 승인 후 앱등록, 서류 요구 없음 |
 | AI Hub | `AIHUB_API_KEY` | ⏸ 보류 | 회원가입 → 버튼 클릭, 즉시 (NIA 사업공고 대체 검토용, 급하지 않음) |
 | 원티드 | `WANTED_CLIENT_ID`<br>`WANTED_CLIENT_SECRET`<br>`WANTED_AUTHORIZATION` | ✅ | `/apply/` 신청(사업자등록번호 필수) → 3영업일 내 이메일로 3개 값 수신. 쿼리파라미터가 아니라 헤더 3종으로 인증 |
 | HRD-Net/고용24 | `WORK24_API_KEY` | ✅ | 기업회원 가입 → Open API 신청(사업자등록번호 필수) → authKey 발급 |
+| KCI | `KCI_API_KEY` | ⏸ 보류 | [openApiList.kci](https://www.kci.go.kr/kciportal/po/openapi/openApiList.kci)에서 신청 → 서류 심사(사업자등록증 필요) 후 발급. 코드는 완료돼 있어 키만 넣으면 동작 |
 
 ### 공공데이터포털 인증키는 계정당 1개입니다
 
@@ -240,6 +242,7 @@ docker run -i --rm --env-file .env korea-public-data-mcp
 | `neis_search_schools` | NEIS로 전국 초·중·고·특수학교 기본정보를 조회합니다. 인증키가 없어도 동작하지만 5건으로 제한됩니다 |
 | `ntis_search_projects` | NTIS로 국가 R&D 과제를 키워드로 검색합니다 |
 | `si_search_reports` | 서울연구원 연구보고서·정책리포트 등 11개 카테고리에서 자료를 검색합니다. 카테고리(`content_type`)를 먼저 지정해야 합니다 |
+| `kci_search_articles` | KCI(한국학술지인용색인)에 등재된 국내 학술논문을 제목 키워드로 검색합니다. 저자·발행연도로 좁힐 수 있습니다. 키 발급이 보류 중이라 실호출 미검증입니다 |
 
 ### 인력 · 채용
 
@@ -247,7 +250,6 @@ docker run -i --rm --env-file .env korea-public-data-mcp
 | --- | --- |
 | `nps_search_employee_count` | 회사명으로 국민연금 사업장을 찾아 가입자수(재직자수 근사치)를 조회합니다. `data_go_kr` 서비스 3046071에 별도 활용신청이 필요합니다 |
 | `nps_get_employee_trend` | 사업장코드(seq)로 신규취득·상실가입자수(입퇴사 흐름)를 조회합니다. `nps_search_employee_count` 결과의 사업장코드를 그대로 씁니다 |
-| `saramin_search_jobs` | 사람인 채용공고를 회사명·직무명으로 검색합니다. 일일 호출 한도가 500회입니다 |
 | `wanted_search_company` | 원티드에 등록된 회사를 이름으로 검색해 회사ID를 얻습니다 |
 | `wanted_get_company_jobs` | 회사ID로 그 회사가 현재 채용 중인 포지션 목록을 조회합니다 |
 | `wanted_search_positions` | 직무 키워드로 채용공고를 검색합니다 (특정 회사에 한정하지 않음) |

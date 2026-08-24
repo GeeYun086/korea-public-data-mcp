@@ -133,13 +133,6 @@ API_KEYS = {
         issue_url="https://www.si.re.kr/openapi (신청 폼 제출 → 승인 후 이메일로 인증키·연동가이드 수신)",
         display_name="서울연구원",
     ),
-    # 사람인은 인증 파라미터명이 access-key 다 (하이픈 포함, 쿼리스트링). 사업자등록증 등
-    # 서류 요구 없이 이메일인증 + 이용신청서 작성만으로 발급된다.
-    "saramin": ApiKeySpec(
-        env_var="SARAMIN_API_KEY",
-        issue_url="https://oapi.saramin.co.kr/join (이메일인증 → 이용신청서 작성 → 승인 후 앱등록 → access-key 확인)",
-        display_name="사람인 Saramin",
-    ),
     # 원티드는 인증이 쿼리파라미터가 아니라 헤더 3종(wanted-client-id, wanted-client-secret,
     # Authorization)이다. 신청 폼(/apply/)에 사업자등록번호가 필수라 개인 신청은 안 되고
     # 회사/팀 명의로 신청해야 한다.
@@ -163,6 +156,17 @@ API_KEYS = {
         env_var="WORK24_API_KEY",
         issue_url="https://www.work24.go.kr (회원가입 → Open API 서비스 신청 → authKey 발급)",
         display_name="고용24 (work24)",
+    ),
+    # KCI(한국학술지인용색인, NRF 한국연구재단 운영). 신청 시 사업자등록증 등 서류 심사가
+    # 필요해 개인 명의 즉시발급이 안 되고, 회사 명의로 신청해 심사를 거쳐야 한다.
+    # 코드는 미리 구현해뒀으니 키만 발급받아 .env 에 넣으면 바로 동작한다.
+    "kci": ApiKeySpec(
+        env_var="KCI_API_KEY",
+        issue_url=(
+            "https://www.kci.go.kr/kciportal/po/openapi/openApiConnSearch.kci "
+            "(신청 폼 제출 → 서류 심사 후 발급, 사업자등록증 필요)"
+        ),
+        display_name="KCI 한국학술지인용색인",
     ),
     # AI Hub 키는 사업공고용이 아니라 aihubshell 데이터셋 다운로드/메타데이터 조회용이다.
     "aihub": ApiKeySpec(
