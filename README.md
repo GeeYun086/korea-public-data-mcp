@@ -51,8 +51,6 @@
 | K-Startup (창업진흥원) | 창업 지원사업 공고. 예비창업자~창업 7년 이내 | [data.go.kr 15125364](https://www.data.go.kr/data/15125364/openapi.do) |
 | 과기정통부 사업공고 | R&D·국제협력·인프라 사업 공모 공고 | [data.go.kr 15074634](https://www.data.go.kr/data/15074634/openapi.do) |
 
-> 보조금24(행정안전부, [data.go.kr 15113968](https://www.data.go.kr/data/15113968/openapi.do))는 활용신청이 중단되어 `gov_search`에서 제외했습니다. 재개되면 코드 수정 없이 다시 켤 수 있어 발급 정보만 남겨둡니다.
-
 ### 정부사업 — 조달 6가지 (조달청 나라장터)
 
 조달은 한 사업이 아래 6단계의 순서로 흘러갑니다.
