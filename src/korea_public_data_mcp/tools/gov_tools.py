@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from datetime import date
 
 from mcp.server.mcpserver import MCPServer
@@ -18,6 +19,9 @@ _MAX_PER_SOURCE = 50
 
 _SEARCH_FIELDS = ("title", "summary", "target", "category", "org")
 
+# 상호 표기 차이(주식회사 OOO / (주)OOO / OOO)를 흡수하기 위해 지우는 법인격 표시.
+_CORP_MARKERS = ("주식회사", "(주)", "㈜", "유한회사", "유한책임회사", "재단법인", "사단법인")
+
 
 def _matches(record: dict, terms: list[str]) -> bool:
     if not terms:
@@ -25,6 +29,26 @@ def _matches(record: dict, terms: list[str]) -> bool:
     hay = " ".join(str(record.get(f) or "") for f in _SEARCH_FIELDS).lower()
     hay += " " + " ".join(str(v) for v in (record.get("extra") or {}).values()).lower()
     return all(t in hay for t in terms)
+
+
+def _normalize_company(name: str) -> str:
+    """상호 비교용 정규화: 법인격 표시와 공백을 지우고 소문자로 맞춘다.
+
+    query의 부분일치와 달리, company 필터는 이 정규화 값끼리 '완전히 같을 때만'
+    통과시켜 계열사·유사상호(예: 'OOO' 검색에 'OOO시스템즈'가 걸리는 것)를 막는다.
+    """
+    n = (name or "").strip().lower()
+    for marker in _CORP_MARKERS:
+        n = n.replace(marker.lower(), "")
+    return re.sub(r"\s+", "", n)
+
+
+def _matches_company(record: dict, company_norm: str) -> bool:
+    if not company_norm:
+        return True
+    candidates = [record.get("org")]
+    candidates.extend((record.get("extra") or {}).values())
+    return any(_normalize_company(str(c)) == company_norm for c in candidates if c)
 
 
 def _is_open(record: dict, today: str) -> bool:
@@ -44,6 +68,7 @@ def register(mcp: MCPServer) -> None:
         sources: list[str] | None = None,
         domain: str = "",
         target: str = "",
+        company: str = "",
         open_only: bool = True,
         limit_per_source: int = _DEFAULT_PER_SOURCE,
     ) -> dict:
@@ -53,14 +78,24 @@ def register(mcp: MCPServer) -> None:
         과기정통부 사업공고, 나라장터(공공기관 입찰공고).
 
         query: 공고명·요약·지원대상·분야·기관명에서 찾을 키워드. 공백으로 나눈 여러 단어는 AND 조건.
-               비워두면 최근 공고를 그대로 돌려준다.
+               비워두면 최근 공고를 그대로 돌려준다. 부분일치이므로 특정 업체 하나를 특정하려는
+               용도로는 쓰지 말 것 — 계열사·유사상호가 함께 걸린다. 그 경우 company를 쓴다.
         sources: 특정 기관만 볼 때 지정한다. 기관명으로 적으면 된다
                  (예: ['조달청'], ['기업마당','K-Startup']). 질문에 기관이 언급되면 반드시 채울 것.
         domain: 'gov_program'(지원사업) 또는 'procurement'(조달·입찰)로 종류를 좁힌다.
         target: 지원대상 필터 (예: '중소기업', '소상공인', '창업').
+        company: "이 업체가 수주/낙찰한 사업을 찾아줘" 류의 요청에 쓴다. 발주기관명·낙찰업체명이
+                 법인격 표시(주식회사/(주) 등)와 공백을 무시하고 이 값과 '완전히 같을 때만' 통과
+                 시키는 정확매칭 필터다 — query와 달리 부분일치가 아니므로 유사상호가 섞이지 않는다.
+                 단, 정확한 상호명(사업자등록증 기준 정식 명칭)을 모르면 걸러지지 않을 수 있으니
+                 확실하지 않다면 사용자에게 정확한 상호명을 먼저 확인할 것.
         open_only: True면 접수 마감일이 지난 공고를 제외한다.
         limit_per_source: 기관별 최대 반환 건수(기본 10). 나라장터는 건수가 압도적이라
                           이 상한이 없으면 다른 기관 공고가 전부 묻힌다.
+
+        [주의] 나라장터 낙찰정보(g2b_award)는 최근 14일, 계약정보(g2b_contract)는 최대 7일
+        범위만 한 번에 조회된다. 특정 업체의 과거 수주 이력 전체를 찾는 요청이면 이 조회 범위
+        제약을 사용자에게 먼저 알리고, 필요한 기간을 나눠 여러 번 호출해야 한다.
 
         어느 기관을 조회할지 먼저 보려면 gov_list_sources 를 호출한다.
         """
@@ -73,6 +108,7 @@ def register(mcp: MCPServer) -> None:
 
         cap = max(1, min(int(limit_per_source or _DEFAULT_PER_SOURCE), _MAX_PER_SOURCE))
         terms = [t for t in query.lower().split() if t]
+        company_norm = _normalize_company(company)
         today = date.today().isoformat()
 
         results = await asyncio.gather(
@@ -91,6 +127,8 @@ def register(mcp: MCPServer) -> None:
                 continue
 
             hits = [r for r in res if _matches(r, terms)]
+            if company_norm:
+                hits = [r for r in hits if _matches_company(r, company_norm)]
             if target:
                 t = target.lower()
                 hits = [r for r in hits if t in (r.get("target") or "").lower()]
@@ -107,6 +145,7 @@ def register(mcp: MCPServer) -> None:
         ok = [s for s in status if s["state"] == "정상"]
         return {
             "query": query,
+            "company": company or None,
             "sources": [s.name for s in picked],
             "요약": f"{len(ok)}/{len(picked)}개 기관 조회 성공, 총 {len(records)}건 반환"
                     + (f" (기관별 최대 {cap}건)" if len(records) else ""),
